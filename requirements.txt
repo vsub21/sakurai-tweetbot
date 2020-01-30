@@ -1,2 +1,2 @@
-praw
-tweepy
+praw==6.5.1
+tweepy==3.8.0
