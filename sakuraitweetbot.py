@@ -1,9 +1,9 @@
 import requests
 from datetime import datetime, timedelta
+from configparser import ConfigParser
 
 import praw
 import tweepy
-from configparser import ConfigParser
 
 TEST_MODE = True
 
@@ -49,11 +49,7 @@ for date, url in media_files.items():
     title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
     
     # Imgur upload
-    if TEST_MODE:
-        headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
-    else:
-        headers = {'Authorization': 'Bearer ' + secrets['Imgur']['CLIENT_SECRET']}
-
+    headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
     data = {'title': title,
             'image': url,
             'type': 'URL'}
@@ -64,9 +60,8 @@ for date, url in media_files.items():
     submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
     
     # Comment on submission
-    comment = """Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)
+    comment = """Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n
     Inspired by my dad: /u/SakuraiBot
     """
     submission.reply(comment)
-
     submissions.append([submission, comment])
