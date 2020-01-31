@@ -22,7 +22,7 @@ api = tweepy.API(twitter)
 # Get last 20 tweets
 tweets = api.user_timeline(screen_name='Sora_Sakurai', count=200, include_rts=False, exclude_replies=True)
 
-# Parse tweets that only contain media and after 5:00 UTC of previous day, store in dict { date : media_url }
+# Filter last 200 tweets that only contain media and after 5:00 UTC of previous day, store in dict { date : media_url }
 media_files = {}
 yday = (datetime.now() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
 for tweet in tweets:
@@ -42,6 +42,8 @@ reddit = praw.Reddit(client_id=secrets['Reddit']['CLIENT_ID'],
 
 subreddit = reddit.subreddit(config['Reddit']['SUBREDDIT_TEST' if TEST_MODE else 'SUBREDDIT'])
 
+# Iterate over filtered tweets to post to imgur/reddit, store in list outside scope
+submissions = []
 for date, url in media_files.items():
     date_string = datetime.strftime(date, '%m/%d/%Y')
     title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
@@ -66,3 +68,5 @@ for date, url in media_files.items():
     Inspired by my dad: /u/SakuraiBot
     """
     submission.reply(comment)
+
+    submissions.append([submission, comment])
