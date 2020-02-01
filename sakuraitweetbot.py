@@ -8,7 +8,7 @@ import tweepy
 
 # Flight variables
 TEST_MODE = True
-USE_IMGUR = False
+USE_IMGUR = True
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -87,10 +87,11 @@ try:
                     'type': 'URL'}
             request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
             imgur_url = request.json()['data']['link']
-            logger.info('Imgur link: {}', imgur_url)
+            logger.info('Imgur link: {}'.format(imgur_url))
 
             # Reddit upload
             submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+
         else: # post link to tweet instead
             submission = subreddit.submit(title=title, url=tweet_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
         logger.info('Reddit submission: {}'.format(submission.__dict__))
@@ -102,6 +103,6 @@ try:
         submissions.append((submission, reply))
 
     logger.info('Final submissions: {}'.format(submissions))
-    
+
 except Exception as e:
     logger.exception(e)
