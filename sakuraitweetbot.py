@@ -65,6 +65,6 @@ for tweet_url, media_url, date in media_files:
         submission = subreddit.submit(title=title, url=expanded_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
     # Comment
-    comment = '[Original Tweet]({url})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(url=expanded_url)
+    comment = '[Original Tweet!]({url})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(url=expanded_url)
     submission.reply(comment)
     submissions.append([submission, comment])
