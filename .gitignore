@@ -131,3 +131,6 @@ dmypy.json
 
 # config/secrets files
 *.ini
+
+# vscode
+.vscode/
