@@ -6,6 +6,7 @@ import praw
 import tweepy
 
 TEST_MODE = True
+USE_IMGUR = False
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -30,7 +31,7 @@ for tweet in tweets:
     text = tweet.text # format is "{tweet} {url}"; if no {tweet} then result is "{url}"
     date = tweet.created_at
     if (len(media) > 0 and not (' ' in text) and date > yday):
-        tweet_url = media[0].get('url')
+        tweet_url = media[0].get('expanded_url')
         media_url = media[0].get('media_url_https')
         media_files.add((tweet_url, media_url, date))
         
@@ -49,18 +50,21 @@ for tweet_url, media_url, date in media_files:
     date_string = datetime.strftime(date, '%m/%d/%Y')
     title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
     
-    # Imgur upload
-    headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
-    data = {'title': title,
-            'image': media_url,
-            'type': 'URL'}
-    request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
-    imgur_url = request.json()['data']['link']
-    
-    # Reddit upload
-    submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
-    
+    if USE_IMGUR: # need r/smashbros mod approval
+        # Imgur upload
+        headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
+        data = {'title': title,
+                'image': media_url,
+                'type': 'URL'}
+        request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
+        imgur_url = request.json()['data']['link']
+
+        # Reddit upload
+        submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+    else: # post link to tweet instead
+        submission = subreddit.submit(title=title, url=expanded_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+
     # Comment
-    comment = 'Original Tweet: [{tweet_url}]({tweet_url})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(tweet_url)
+    comment = '[Original Tweet]({url})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(url=expanded_url)
     submission.reply(comment)
     submissions.append([submission, comment])
