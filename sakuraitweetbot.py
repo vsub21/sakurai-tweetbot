@@ -86,8 +86,10 @@ try:
                     'image': media_url,
                     'type': 'URL'}
             request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
-            imgur_url = request.json()['data']['link']
-            logger.info('Imgur link: {}'.format(imgur_url))
+            json = request.json()
+            logger.info('Imgur request JSON: {}'.format(json))
+            imgur_url = json['data']['link']
+
 
             # Reddit upload
             submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
