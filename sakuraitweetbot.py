@@ -5,6 +5,7 @@ from configparser import ConfigParser
 import praw
 import tweepy
 
+# Flight variable
 TEST_MODE = True
 USE_IMGUR = False
 
@@ -20,17 +21,17 @@ twitter = tweepy.AppAuthHandler(consumer_key=secrets['Twitter']['CONSUMER_KEY'],
                              consumer_secret=secrets['Twitter']['CONSUMER_SECRET'])
 api = tweepy.API(twitter)
 
-# Get last 20 tweets
+# Get last 200 tweets
 tweets = api.user_timeline(screen_name='Sora_Sakurai', count=200, include_rts=False, exclude_replies=True)
 
-# Filter last 200 tweets that only contain media and after 5:00 UTC of previous day, store in dict { date : media_url }
+# Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
 media_files = set()
-yday = (datetime.now() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
+yday = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
 for tweet in tweets:
     media = tweet.entities.get('media', [])
     text = tweet.text # format is "{tweet} {url}"; if no {tweet} then result is "{url}"
     date = tweet.created_at
-    if (len(media) > 0 and not (' ' in text) and date > yday):
+    if (date > yday and len(media) > 0 and not (' ' in text)):
         tweet_url = media[0].get('expanded_url')
         media_url = media[0].get('media_url_https')
         media_files.add((tweet_url, media_url, date))
