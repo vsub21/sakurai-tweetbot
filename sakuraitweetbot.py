@@ -108,7 +108,7 @@ try:
             logger.info(stream.__dict__)
 
             # Reddit upload
-            submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=True, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+            submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
             # Cleanup
             try:
@@ -124,7 +124,7 @@ try:
         logger.info('Reddit submission ({}): {}'.format(POST_MODE, submission.__dict__))
         
         # Comment
-        comment = '[Original Tweet!]({url})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(url=tweet_url)
+        comment = '[Original Tweet]({}) and [Full-Size Image!]({})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(tweet_url, media_url)
         reply = submission.reply(comment)
         logger.info('Reddit reply: {}'.format(reply.__dict__))
         submissions.append((submission, reply))
