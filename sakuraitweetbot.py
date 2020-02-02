@@ -58,7 +58,7 @@ try:
         date = tweet.created_at
         if (date > yday and len(media) > 0 and not (' ' in text)):
             tweet_url = media[0].get('expanded_url')
-            media_url = media[0].get('media_url_https')
+            media_url = '{}?format=jpg&name=4096x4096'.format(media[0].get('media_url_https'))
             media_files.add((tweet_url, media_url, date))
     logger.info('Filtered tweets set: {}'.format(media_files))
 
