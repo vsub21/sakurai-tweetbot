@@ -1,14 +1,17 @@
+import os
 import requests
+import urllib
 import logging
 from datetime import datetime, timedelta
 from configparser import ConfigParser
 
 import praw
 import tweepy
+import ffmpeg
 
 # Flight variables
 TEST_MODE = True
-USE_IMGUR = True
+POST_MODE = 'video' # 'imgur', 'video', or 'tweet'
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -33,7 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 logger.info('TEST_MODE={}'.format(TEST_MODE))
-logger.info('USE_IMGUR={}'.format(USE_IMGUR))
+logger.info('POST_MODE={}'.format(POST_MODE))
 
 try:
     # Twitter auth
@@ -79,7 +82,7 @@ try:
         date_string = datetime.strftime(date, '%m/%d/%Y')
         title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
         
-        if USE_IMGUR: # need r/smashbros mod approval
+        if POST_MODE == 'imgur': # need r/smashbros mod approval
             # Imgur upload
             headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
             data = {'title': title,
@@ -90,13 +93,35 @@ try:
             logger.info('Imgur request JSON: {}'.format(json))
             imgur_url = json['data']['link']
 
-
             # Reddit upload
             submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
-        else: # post link to tweet instead
+        elif POST_MODE == 'video': # requires ffmpeg installation and PATH variable set
+            # Download image
+            image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
+            urllib.request.urlretrieve(media_url, image_fp)
+
+            # ffmpeg conversion
+            video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
+            stream = ffmpeg.input(image_fp, loop=1, t=5).output(video_fp) # ffmpeg -loop 1 -i {image_fp} -t 5 {video_fp}
+            stream.run()
+            logger.info(stream.__dict__)
+
+            # Reddit upload
+            submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=True, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+
+            # Cleanup
+            try:
+                os.remove(image_fp)
+                os.remove(video_fp)
+            except Exception as ex:
+                logger.exception(ex)
+                continue
+
+        else: # assume POST_MODE == 'twitter', post link to tweet instead
             submission = subreddit.submit(title=title, url=tweet_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
-        logger.info('Reddit submission: {}'.format(submission.__dict__))
+        
+        logger.info('Reddit submission ({}): {}'.format(POST_MODE, submission.__dict__))
         
         # Comment
         comment = '[Original Tweet!]({url})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot'.format(url=tweet_url)
