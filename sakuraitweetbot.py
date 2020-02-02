@@ -103,9 +103,10 @@ try:
 
             # ffmpeg conversion
             video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
-            stream = ffmpeg.input(image_fp, loop=1, t=5).output(video_fp) # ffmpeg -loop 1 -i {image_fp} -t 5 {video_fp}
-            stream.run()
-            logger.info(stream.__dict__)
+            out, err = ffmpeg.input(image_fp, loop=1, t=5).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_fp} -t 5 {video_fp}
+            
+            logger.info('ffmpeg stdout: {}'.format(out))
+            logger.info('ffmpeg stderr: {}'.format(err))
 
             # Reddit upload
             submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
