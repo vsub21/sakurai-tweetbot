@@ -125,7 +125,7 @@ try:
         logger.info('Reddit submission ({}): {}'.format(POST_MODE, submission.__dict__))
         
         # Comment
-        comment = '[Original Tweet]({}) and [Full-Size Image!]({})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n---\n^(*I am a bot, and this action was performed automatically. Message [me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) if you have any questions or concerns. For information about me, visit this [thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/).*)'.format(tweet_url, media_url)
+        comment = '[Original Tweet]({}) and [Full-Size Image!]({})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n\n---\n^(*I am a bot, and this action was performed automatically. Message [me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) if you have any questions or concerns. For information about me, visit this [thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/).*)'.format(tweet_url, media_url)
         reply = submission.reply(comment)
         logger.info('Reddit reply: {}'.format(reply.__dict__))
         submissions.append((submission, reply))
