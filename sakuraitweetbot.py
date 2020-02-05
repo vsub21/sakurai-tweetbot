@@ -12,6 +12,7 @@ import ffmpeg
 # Flight variables
 TEST_MODE = True
 POST_MODE = 'video' # 'imgur', 'video', or 'tweet'
+HAS_MOD = True
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -22,7 +23,7 @@ config.read('cfg/config.ini')
 
 # Logger setup
 logging.basicConfig(
-    filename='{}/logs/{}.log'.format(secrets['Local']['repo_path'], datetime.today().strftime("%Y-%m-%d")),
+    filename='{}/logs/{}{}.log'.format(secrets['Local']['repo_path'], datetime.today().strftime("%Y-%m-%d"),'_test' if TEST_MODE else ''),
     filemode='w',
     format='%(asctime)s %(levelname)s: %(message)s',
     datefmt='%m/%d/%Y %I:%M:%S %p',
@@ -82,7 +83,7 @@ try:
         date_string = datetime.strftime(date, '%m/%d/%Y')
         title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
         
-        if POST_MODE == 'imgur': # need r/smashbros mod approval
+        if POST_MODE == 'imgur' and HAS_MOD: # need r/smashbros mod approval
             # Imgur upload
             headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
             data = {'title': title,
@@ -127,6 +128,8 @@ try:
         # Comment
         comment = '[Original Tweet]({}) and [Full-Size Image!]({})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n\n---\n^(*I am a bot, and this action was performed automatically. Message [me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) if you have any questions or concerns. For information about me, visit this [thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/).*)'.format(tweet_url, media_url)
         reply = submission.reply(comment)
+        if HAS_MOD: # sticky and mod distinguish
+            reply.mod.distinguish(how='yes', sticky=True)
         logger.info('Reddit reply: {}'.format(reply.__dict__))
         submissions.append((submission, reply))
 
