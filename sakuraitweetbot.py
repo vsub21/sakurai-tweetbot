@@ -11,7 +11,7 @@ import ffmpeg
 
 # Flight variables
 TEST_MODE = True
-POST_MODE = 'video' # 'imgur', 'video', or 'tweet'
+POST_MODE = 'image' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
 HAS_MOD = True
 
 # Read config/secrets files
@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 logger.info('TEST_MODE={}'.format(TEST_MODE))
 logger.info('POST_MODE={}'.format(POST_MODE))
+logger.info('HAS_MOD={}'.format(HAS_MOD))
 
 try:
     # Twitter auth
@@ -83,7 +84,7 @@ try:
         date_string = datetime.strftime(date, '%m/%d/%Y')
         title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
         
-        if POST_MODE == 'imgur' and HAS_MOD: # need r/smashbros mod approval
+        if HAS_MOD and POST_MODE == 'imgur': # need r/smashbros mod approval
             # Imgur upload
             headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
             data = {'title': title,
@@ -97,10 +98,27 @@ try:
             # Reddit upload
             submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
+        elif HAS_MOD and POST_MODE == 'image':
+            # Download image
+            image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
+            urllib.request.urlretrieve(media_url, image_fp)
+            submission = subreddit.sub
+
+            # Reddit upload
+            submission = subreddit.submit_video(title=title, image_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+
+            # Cleanup
+            try:
+                os.remove(image_fp)
+            except Exception as ex:
+                logger.exception(ex)
+                continue
+
         elif POST_MODE == 'video': # requires ffmpeg installation and PATH variable set
             # Download image
             image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
             urllib.request.urlretrieve(media_url, image_fp)
+            logger.info('Downloaded image.')
 
             # ffmpeg conversion
             video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
@@ -128,9 +146,10 @@ try:
         # Comment
         comment = '[Original Tweet]({}) and [Full-Size Image!]({})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n\n---\n^(*I am a bot, and this action was performed automatically. Message [me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) if you have any questions or concerns. For information about me, visit this [thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/).*)'.format(tweet_url, media_url)
         reply = submission.reply(comment)
+        logger.info('Reddit reply: {}'.format(reply.__dict__))
         if HAS_MOD: # sticky and mod distinguish
             reply.mod.distinguish(how='yes', sticky=True)
-        logger.info('Reddit reply: {}'.format(reply.__dict__))
+            logger.info('Stickied comment {}'.format(reply))
         submissions.append((submission, reply))
 
     logger.info('Final submissions: {}'.format(submissions))
