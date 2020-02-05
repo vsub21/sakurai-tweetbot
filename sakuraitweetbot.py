@@ -11,7 +11,7 @@ import ffmpeg
 
 # Flight variables
 TEST_MODE = True
-POST_MODE = 'image' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
+POST_MODE = 'imgur' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
 HAS_MOD = True
 
 # Read config/secrets files
@@ -102,10 +102,9 @@ try:
             # Download image
             image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
             urllib.request.urlretrieve(media_url, image_fp)
-            submission = subreddit.sub
 
             # Reddit upload
-            submission = subreddit.submit_video(title=title, image_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+            submission = subreddit.submit_image(title=title, image_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
             # Cleanup
             try:
@@ -148,8 +147,10 @@ try:
         reply = submission.reply(comment)
         logger.info('Reddit reply: {}'.format(reply.__dict__))
         if HAS_MOD: # sticky and mod distinguish
+            submission.mod.distinguish(how='yes', sticky=False)
+            logger.info('Distinguished submission {}'.format(submission))
             reply.mod.distinguish(how='yes', sticky=True)
-            logger.info('Stickied comment {}'.format(reply))
+            logger.info('Distinguished, stickied comment {}'.format(reply))
         submissions.append((submission, reply))
 
     logger.info('Final submissions: {}'.format(submissions))
