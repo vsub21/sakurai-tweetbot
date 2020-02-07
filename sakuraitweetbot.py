@@ -27,10 +27,6 @@ logging.basicConfig(
     filemode='w',
     format='%(asctime)s %(levelname)s: %(message)s',
     datefmt='%m/%d/%Y %I:%M:%S %p',
-    # handlers=[
-    #     logging.FileHandler("output.log"),
-    #     logging.StreamHandler()
-    # ]
     level=logging.DEBUG
 )
 
@@ -148,9 +144,11 @@ try:
         logger.info('Reddit reply: {}'.format(reply.__dict__))
         if HAS_MOD: # sticky and mod distinguish
             submission.mod.distinguish(how='yes', sticky=False)
-            logger.info('Distinguished submission {}'.format(submission))
+            submission.mod.approve()
+            logger.info('Distinguished, approved submission {}'.format(submission))
             reply.mod.distinguish(how='yes', sticky=True)
-            logger.info('Distinguished, stickied comment {}'.format(reply))
+            reply.mod.approve()
+            logger.info('Distinguished, approved stickied comment {}'.format(reply))
         submissions.append((submission, reply))
 
     logger.info('Final submissions: {}'.format(submissions))
