@@ -50,17 +50,20 @@ try:
     logger.info('Fetched last {} tweets from @{}.'.format(TWEET_COUNT, SCREEN_NAME))
 
     # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
-    media_files = set()
+    media_files = []
     yday = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
     logger.info('Lower bound constraint: {}')
     for tweet in tweets:
         media = tweet.entities.get('media', [])
-        text = tweet.text # format is "{tweet} {url}"; if no {tweet} then result is "{url}"
+        text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}"
         date = tweet.created_at
-        if (date > yday and len(media) > 0 and not (' ' in text)):
-            tweet_url = media[0].get('expanded_url')
-            media_url = '{}?format=jpg&name=4096x4096'.format(media[0].get('media_url_https'))
-            media_files.add((tweet_url, media_url, date))
+        if (date > yday): # tweets are ordered by newest to oldest, break to avoid parsing unnecessary tweets
+            if (len(media) > 0 and not (' ' in text)):
+                tweet_url = media[0].get('expanded_url')
+                media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
+                media_files.append((tweet_url, media_urls, date))
+        else: 
+            break
     logger.info('Filtered tweets set: {}'.format(media_files))
 
     # Reddit auth
@@ -76,25 +79,39 @@ try:
 
     # Iterate over filtered tweets to post to imgur/reddit, store in list outside scope
     submissions = []
-    for tweet_url, media_url, date in media_files:
+    for tweet_url, media_urls, date in media_files:
         date_string = datetime.strftime(date, '%m/%d/%Y')
         title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
-        
+
         if HAS_MOD and POST_MODE == 'imgur': # need r/smashbros mod approval
             # Imgur upload
             headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
-            data = {'title': title,
-                    'image': media_url,
-                    'type': 'URL'}
-            request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
-            json = request.json()
-            logger.info('Imgur request JSON: {}'.format(json))
-            imgur_url = json['data']['link']
+            delete_hashes = []
+            for media_url in media_urls:
+                data = {'image': media_url, 
+                        'type': 'URL'}
+                if len(media_urls) == 1:
+                    data['title'] = title
 
-            # Reddit upload
+                logger.info('Imgur data for POST request: {}'.format(data))
+                request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
+                json = request.json()
+                logger.info('Attempt -- Imgur IMAGE request JSON:\n{}'.format(json))
+                delete_hashes.append(json['data']['deletehash'])
+            if len(media_urls) == 1:
+                imgur_url = json['data']['link']
+            else:
+                data = {'title': title,
+                        'deletehashes[]': delete_hashes}
+                request = requests.post(config['Imgur']['CREATE_ALBUM_API'], data=data, headers=headers)
+                json = request.json()
+                logger.info('Imgur ALBUM request JSON:\n{}'.format(json))
+                imgur_url = 'https://imgur.com/a/{}'.format(json['data']['id'])
+                logger.info('Imgur album link: {}'.format(imgur_url))
+
             submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
-        elif HAS_MOD and POST_MODE == 'image':
+        elif HAS_MOD and POST_MODE == 'image': # TODO: Include proper error handling for reddit image upload.
             # Download image
             image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
             urllib.request.urlretrieve(media_url, image_fp)
