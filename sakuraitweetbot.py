@@ -2,6 +2,7 @@ import os
 import requests
 import urllib
 import logging
+import glob
 from datetime import datetime, timedelta
 from configparser import ConfigParser
 
@@ -11,7 +12,7 @@ import ffmpeg
 
 # Flight variables
 TEST_MODE = True
-POST_MODE = 'imgur' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
+POST_MODE = 'video' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
 HAS_MOD = True
 
 # Read config/secrets files
@@ -35,6 +36,19 @@ logger = logging.getLogger(__name__)
 logger.info('TEST_MODE={}'.format(TEST_MODE))
 logger.info('POST_MODE={}'.format(POST_MODE))
 logger.info('HAS_MOD={}'.format(HAS_MOD))
+
+# Cleanup media before start
+pics = glob.glob('{}/media/*.jpg'.format(secrets['Local']['repo_path']))
+vids = glob.glob('{}/media/*.mp4'.format(secrets['Local']['repo_path']))
+to_delete = pics + vids
+for fp in to_delete:
+    try:
+        os.remove(fp)
+        logger.info('Removed file: ')
+    except Exception as ex:
+        logger.info('Error while deleting file: ', fp)
+        logger.exception(ex)
+        continue
 
 try:
     # Twitter auth
@@ -111,7 +125,7 @@ try:
 
             submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
-        elif HAS_MOD and POST_MODE == 'image': # TODO: Include proper error handling for reddit image upload.
+        elif HAS_MOD and POST_MODE == 'image' and len(media_urls == 1): # TODO: Include proper error handling for reddit image upload.
             # Download image
             image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
             urllib.request.urlretrieve(media_url, image_fp)
@@ -127,15 +141,17 @@ try:
                 continue
 
         elif POST_MODE == 'video': # requires ffmpeg installation and PATH variable set
-            # Download image
-            image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
-            urllib.request.urlretrieve(media_url, image_fp)
-            logger.info('Downloaded image.')
-
+            # Download images
+            for idx, media_url in enumerate(media_urls):
+                image_fp = '{}/media/image-{}.jpg'.format(secrets['Local']['repo_path'], str(idx).zfill(3))
+                urllib.request.urlretrieve(media_url, image_fp)
+                logger.info('Downloaded image {}.'.format(image_fp))
+                
             # ffmpeg conversion
+            image_seq_fp = '{}/media/image-%03d.jpg'.format(secrets['Local']['repo_path'])
             video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
-            out, err = ffmpeg.input(image_fp, loop=1, t=10).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_fp} -t 10 {video_fp}
-            
+            out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5
+
             logger.info('ffmpeg stdout: {}'.format(out))
             logger.info('ffmpeg stderr: {}'.format(err))
 
@@ -143,12 +159,16 @@ try:
             submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
 
             # Cleanup
-            try:
-                os.remove(image_fp)
-                os.remove(video_fp)
-            except Exception as ex:
-                logger.exception(ex)
-                continue
+            pics = glob.glob('{}/media/*.jpg'.format(secrets['Local']['repo_path']))
+            vids = glob.glob('{}/media/*.mp4'.format(secrets['Local']['repo_path']))
+            to_delete = pics + vids
+            for fp in to_delete:
+                try:
+                    os.remove(fp)
+                except Exception as ex:
+                    logger.info("Error while deleting file: ", fp)
+                    logger.exception(ex)
+                    continue
 
         else: # assume POST_MODE == 'twitter', post link to tweet instead
             submission = subreddit.submit(title=title, url=tweet_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
