@@ -12,7 +12,7 @@ import ffmpeg
 
 # Flight variables
 TEST_MODE = True
-POST_MODE = 'video' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
+POST_MODE = 'imgur' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
 HAS_MOD = True
 
 # Read config/secrets files
@@ -176,9 +176,19 @@ try:
         logger.info('Reddit submission ({}): {}'.format(POST_MODE, submission.__dict__))
         
         # Comment
-        comment = '[Original Tweet]({}) and [Full-Size Image!]({})\n\nTwitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'.format(tweet_url, media_url)
+        comment = '[Original Tweet]({}) and '.format(tweet_url)
+        if len(media_urls) > 1:
+            # TODO: figure out a better way to do this possibly with map/lambda and str join
+            comment += 'Full-Size Images!: '
+            for idx, media_url in enumerate(media_urls):
+                comment += '[Image {}]({}), '.format(idx + 1, media_url) # 1-index
+            comment = comment[:-2] + '\n\n' # removes trailing ', '
+        else:
+            comment = '[Full-Size Image!]({})\n\n'.format(media_urls[0])
+        comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'
         reply = submission.reply(comment)
         logger.info('Reddit reply: {}'.format(reply.__dict__))
+
         if HAS_MOD: # sticky and mod distinguish
             submission.mod.distinguish(how='yes', sticky=False)
             submission.mod.approve()
