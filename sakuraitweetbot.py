@@ -12,8 +12,6 @@ import ffmpeg
 
 # Flight variables
 TEST_MODE = True
-POST_MODE = 'imgur' # 'imgur', 'image' (reddit), 'video' (reddit), or 'tweet'
-HAS_MOD = True
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -34,21 +32,138 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 logger.info('TEST_MODE={}'.format(TEST_MODE))
-logger.info('POST_MODE={}'.format(POST_MODE))
-logger.info('HAS_MOD={}'.format(HAS_MOD))
+
+def cleanup_media():
+    pics = glob.glob('{}/media/*.jpg'.format(secrets['Local']['repo_path']))
+    vids = glob.glob('{}/media/*.mp4'.format(secrets['Local']['repo_path']))
+    to_delete = pics + vids
+    for fp in to_delete:
+        try:
+            os.remove(fp)
+            logger.info('Removed file: {}'.format(fp))
+        except Exception as ex:
+            logger.info('Error while deleting file: {}'.format(fp))
+            logger.exception(ex)
+            continue
+
+def post_image_to_reddit(media_url, title):
+    # Download image
+    image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
+    urllib.request.urlretrieve(media_url, image_fp)
+
+    # Reddit upload
+    return subreddit.submit_image(title=title, image_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+
+def create_video_from_urls(media_urls):
+    # Download images
+    for idx, media_url in enumerate(media_urls):
+        image_fp = '{}/media/image-{}.jpg'.format(secrets['Local']['repo_path'], str(idx).zfill(3))
+        urllib.request.urlretrieve(media_url, image_fp)
+        logger.info('Downloaded image {}.'.format(image_fp))
+        
+    # ffmpeg conversion
+    image_seq_fp = '{}/media/image-%03d.jpg'.format(secrets['Local']['repo_path'])
+    video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
+    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5
+
+    logger.info('ffmpeg stdout: {}'.format(out))
+    logger.info('ffmpeg stderr: {}'.format(err))
+
+    return video_fp
+
+def post_video_to_reddit(media_urls, title):
+    video_fp = create_video_from_urls(media_urls)
+    submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+    logger.info('Reddit video submission: {}'.format(submission.__dict__))
+    return submission
+
+def post_link_to_reddit(url, title):
+    submission = subreddit.submit(title=title, url=url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+    logger.info('Reddit link submission: {}'.format(submission.__dict__))
+    return submission
+
+def create_reddit_comment(media_urls, tweet_url, submission):
+    comment = '[Original Tweet]({}) and '.format(tweet_url)
+    if len(media_urls) > 1:
+        # TODO: figure out a better way to do this possibly with map/lambda and str join
+        comment += 'Full-Size Images!: '
+        for idx, media_url in enumerate(media_urls):
+            comment += '[Image {}]({}), '.format(idx + 1, media_url) # 1-index
+        comment = comment[:-2] + '\n\n' # removes trailing ', '
+    else:
+        comment += '[Full-Size Image!]({})\n\n'.format(media_urls[0])
+    
+    comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\n'
+    comment += 'Inspired by my dad: /u/SakuraiBot\n\n'
+    comment += '[Album of all Smash Pics-of-the-Day!](https://imgur.com/a/{})'.format(secrets['Imgur']['ALBUM_ID'])
+    comment += '\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'
+    
+    reply = submission.reply(comment)
+    logger.info('Reddit reply: {}'.format(reply.__dict__))
+    return reply
+
+def create_imgur_post(media_url, title, tweet_url):
+    headers = {'Authorization': 'Bearer ' + secrets['Imgur']['ACCESS_TOKEN']}
+    data = {'title': title,
+            'image': media_url,
+            'description': 'Original Tweet: {}'.format(tweet_url).replace('.', '&#46;'), # imgur bug workaround, see https://github.com/DamienDennehy/Imgur.API/issues/8
+            'type': 'URL'}
+    logger.info('data for CREATE_IMGUR_POST POST request: {}'.format(data))
+    request = requests.post(config['Imgur']['UPLOAD_IMAGE_API'], data=data, headers=headers)
+
+    json = request.json()
+    logger.info('JSON for CREATE_IMGUR_POST POST request:\n{}'.format(json))
+
+    image_id = json['data']['id']
+    image_url = json['data']['link']
+
+    return image_id, image_url
+
+def create_imgur_album():
+    headers = {'Authorization': 'Bearer ' + secrets['Imgur']['ACCESS_TOKEN']}
+    data = {'title': 'New Smash Pic-of-the-Day Album! by /u/SakuraiTweetBot',
+            'description': 'An album containing each Smash pic-of-the-day posted by @Sora_Sakurai on Twitter, mirrored to /r/smashbros on Reddit by /u/SakuraiTweetBot.',
+            'privacy': 'public'       
+        }
+    logger.info('data for CREATE_IMGUR_ALBUM POST request: {}'.format(data))
+    request = requests.post(config['Imgur']['CREATE_ALBUM_API'], data=data, headers=headers)
+
+    json = request.json()
+    logger.info('JSON for CREATE_IMGUR_ALBUM POST request:\n{}'.format(json))
+
+    album_hash = json['data']['id']
+    return album_hash
+
+def update_imgur_album(image_ids):
+    headers = {'Authorization': 'Bearer ' + secrets['Imgur']['ACCESS_TOKEN']}
+    # GET request to get ids of images in album in order
+    request = requests.get(config['Imgur']['CREATE_ALBUM_API'] + '/{}/images'.format(secrets['Imgur']['ALBUM_ID']), headers=headers)
+    
+    album_ids = [image['id'] for image in request.json()['data']]
+    logger.info('album_ids from UPDATE_IMGUR_ALBUM GET request: {}'.format(album_ids))
+
+    album_ids = image_ids + album_ids # prepend new images to list
+
+    # POST request to set image ids in album
+    data = {'ids[]': album_ids}
+
+    request = requests.post(config['Imgur']['CREATE_ALBUM_API'] + '/{}/'.format(secrets['Imgur']['ALBUM_ID']), data=data, headers=headers)
+    logger.info('data for UPDATE_IMGUR_ALBUM POST request: {}'.format(data))
+
+    json = request.json()
+    logger.info('JSON for UPDATE_IMGUR_ALBUM POST request:\n{}'.format(json))
+
+    # PUT request to update cover to id of top of album
+    data = {'cover': album_ids[0]}
+
+    request = requests.put(config['Imgur']['CREATE_ALBUM_API'] + '/{}'.format(secrets['Imgur']['ALBUM_ID']), data=data, headers=headers)
+    logger.info('data for UPDATE_IMGUR_ALBUM PUT request: {}'.format(data))
+
+    json = request.json()
+    logger.info('JSON for UPDATE_IMGUR_ALBUM PUT request:\n{}'.format(json))
 
 # Cleanup media before start
-pics = glob.glob('{}/media/*.jpg'.format(secrets['Local']['repo_path']))
-vids = glob.glob('{}/media/*.mp4'.format(secrets['Local']['repo_path']))
-to_delete = pics + vids
-for fp in to_delete:
-    try:
-        os.remove(fp)
-        logger.info('Removed file: ')
-    except Exception as ex:
-        logger.info('Error while deleting file: ', fp)
-        logger.exception(ex)
-        continue
+cleanup_media()
 
 try:
     # Twitter auth
@@ -66,7 +181,8 @@ try:
     # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
     media_files = []
     yday = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
-    logger.info('Lower bound constraint: {}')
+    logger.info('Lower bound time constraint: {}'.format(yday))
+
     for tweet in tweets:
         media = tweet.entities.get('media', [])
         text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}"
@@ -97,105 +213,31 @@ try:
         date_string = datetime.strftime(date, '%m/%d/%Y')
         title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
 
-        if HAS_MOD and POST_MODE == 'imgur': # need r/smashbros mod approval
-            # Imgur upload
-            headers = {'Authorization': 'Client-ID ' + secrets['Imgur']['CLIENT_ID']}
-            delete_hashes = []
-            for media_url in media_urls:
-                data = {'image': media_url, 
-                        'type': 'URL'}
-                if len(media_urls) == 1:
-                    data['title'] = title
-
-                logger.info('Imgur data for POST request: {}'.format(data))
-                request = requests.post(config['Imgur']['UPLOAD_API'], data=data, headers=headers)
-                json = request.json()
-                logger.info('Attempt -- Imgur IMAGE request JSON:\n{}'.format(json))
-                delete_hashes.append(json['data']['deletehash'])
-            if len(media_urls) == 1:
-                imgur_url = json['data']['link']
-            else:
-                data = {'title': title,
-                        'deletehashes[]': delete_hashes}
-                request = requests.post(config['Imgur']['CREATE_ALBUM_API'], data=data, headers=headers)
-                json = request.json()
-                logger.info('Imgur ALBUM request JSON:\n{}'.format(json))
-                imgur_url = 'https://imgur.com/a/{}'.format(json['data']['id'])
-                logger.info('Imgur album link: {}'.format(imgur_url))
-
-            submission = subreddit.submit(title=title, url=imgur_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
-
-        elif HAS_MOD and POST_MODE == 'image' and len(media_urls == 1): # TODO: Include proper error handling for reddit image upload.
-            # Download image
-            image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
-            urllib.request.urlretrieve(media_url, image_fp)
-
-            # Reddit upload
-            submission = subreddit.submit_image(title=title, image_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
-
-            # Cleanup
-            try:
-                os.remove(image_fp)
-            except Exception as ex:
-                logger.exception(ex)
-                continue
-
-        elif POST_MODE == 'video': # requires ffmpeg installation and PATH variable set
-            # Download images
-            for idx, media_url in enumerate(media_urls):
-                image_fp = '{}/media/image-{}.jpg'.format(secrets['Local']['repo_path'], str(idx).zfill(3))
-                urllib.request.urlretrieve(media_url, image_fp)
-                logger.info('Downloaded image {}.'.format(image_fp))
-                
-            # ffmpeg conversion
-            image_seq_fp = '{}/media/image-%03d.jpg'.format(secrets['Local']['repo_path'])
-            video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
-            out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5
-
-            logger.info('ffmpeg stdout: {}'.format(out))
-            logger.info('ffmpeg stderr: {}'.format(err))
-
-            # Reddit upload
-            submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
-
-            # Cleanup
-            pics = glob.glob('{}/media/*.jpg'.format(secrets['Local']['repo_path']))
-            vids = glob.glob('{}/media/*.mp4'.format(secrets['Local']['repo_path']))
-            to_delete = pics + vids
-            for fp in to_delete:
-                try:
-                    os.remove(fp)
-                except Exception as ex:
-                    logger.info("Error while deleting file: ", fp)
-                    logger.exception(ex)
-                    continue
-
-        else: # assume POST_MODE == 'twitter', post link to tweet instead
-            submission = subreddit.submit(title=title, url=tweet_url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
-        
-        logger.info('Reddit submission ({}): {}'.format(POST_MODE, submission.__dict__))
-        
-        # Comment
-        comment = '[Original Tweet]({}) and '.format(tweet_url)
+        image_uploads = []
+        for media_url in media_urls: # post images to imgur
+            upload = create_imgur_post(media_url, title, tweet_url)
+            image_uploads.append(upload)
         if len(media_urls) > 1:
-            # TODO: figure out a better way to do this possibly with map/lambda and str join
-            comment += 'Full-Size Images!: '
-            for idx, media_url in enumerate(media_urls):
-                comment += '[Image {}]({}), '.format(idx + 1, media_url) # 1-index
-            comment = comment[:-2] + '\n\n' # removes trailing ', '
-        else:
-            comment = '[Full-Size Image!]({})\n\n'.format(media_urls[0])
-        comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\nInspired by my dad: /u/SakuraiBot\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'
-        reply = submission.reply(comment)
-        logger.info('Reddit reply: {}'.format(reply.__dict__))
+            submission = post_video_to_reddit(media_urls, title) # post video to reddit
+            cleanup_media()
+        else: # only one image in tweet
+            image_url = image_uploads[0][1]
+            submission = post_link_to_reddit(image_url, title) # post link to imgur post       
+        
+        update_imgur_album([iid for iid, url in image_uploads])
+        
+        # Create Reddit comment
+        reply = create_reddit_comment(media_urls, tweet_url, submission)
 
-        if HAS_MOD: # sticky and mod distinguish
-            submission.mod.distinguish(how='yes', sticky=False)
-            submission.mod.approve()
-            logger.info('Distinguished, approved submission {}'.format(submission))
-            reply.mod.distinguish(how='yes', sticky=True)
-            reply.mod.approve()
-            logger.info('Distinguished, approved stickied comment {}'.format(reply))
+        # Sticky and mod distinguish
+        submission.mod.distinguish(how='yes', sticky=False)
+        submission.mod.approve()
+        logger.info('Distinguished, approved submission {}'.format(submission))
+
+        reply.mod.distinguish(how='yes', sticky=True)
+        reply.mod.approve()
+        logger.info('Distinguished, approved stickied comment {}'.format(reply))
+
         submissions.append((submission, reply))
 
     logger.info('Final submissions: {}'.format(submissions))
