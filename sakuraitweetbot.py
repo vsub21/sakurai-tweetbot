@@ -11,7 +11,7 @@ import tweepy
 import ffmpeg
 
 # Flight variables
-TEST_MODE = True
+TEST_MODE = False
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -162,6 +162,18 @@ def update_imgur_album(image_ids):
     json = request.json()
     logger.info('JSON for UPDATE_IMGUR_ALBUM PUT request:\n{}'.format(json))
 
+def post_to_imgur_gallery(image_ids, title):
+    headers = {'Authorization': 'Bearer ' + secrets['Imgur']['ACCESS_TOKEN']}
+    # POST request to add image_ids to imgur public gallery
+    data = {'title': title,
+            'terms': 1,
+            'mature': 0,
+            'tags':'smashbros'}
+    logger.info('data for POST_TO_IMGUR_GALLERY POST request: {}'.format(data))
+    request = requests.post(config['Imgur']['UPLOAD_IMAGE_GALLERY'] + '/{}'.format(iid), data=data, headers=headers)
+    json = request.json()
+    logger.info('JSON for POST_TO_IMGUR_GALLERY POST POST request:\n{}'.format(json))
+
 # Cleanup media before start
 cleanup_media()
 
@@ -224,7 +236,8 @@ try:
             image_url = image_uploads[0][1]
             submission = post_link_to_reddit(image_url, title) # post link to imgur post       
         
-        update_imgur_album([iid for iid, url in image_uploads])
+        image_ids = [iid for iid, url in image_uploads]
+        update_imgur_album(image_ids)
         
         # Create Reddit comment
         reply = create_reddit_comment(media_urls, tweet_url, submission)
