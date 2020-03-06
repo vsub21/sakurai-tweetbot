@@ -58,6 +58,8 @@ def create_video_from_urls(media_urls):
     # Download images
     for idx, media_url in enumerate(media_urls):
         image_fp = '{}/media/image-{}.jpg'.format(secrets['Local']['repo_path'], str(idx).zfill(3))
+        if idx == 0:
+            thumbnail_path = image_fp
         urllib.request.urlretrieve(media_url, image_fp)
         logger.info('Downloaded image {}.'.format(image_fp))
         
@@ -69,11 +71,11 @@ def create_video_from_urls(media_urls):
     logger.info('ffmpeg stdout: {}'.format(out))
     logger.info('ffmpeg stderr: {}'.format(err))
 
-    return video_fp
+    return video_fp, thumbnail_path
 
 def post_video_to_reddit(media_urls, title):
-    video_fp = create_video_from_urls(media_urls)
-    submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=image_fp, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+    video_fp, thumbnail_path = create_video_from_urls(media_urls)
+    submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=thumbnail_path, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
     logger.info('Reddit video submission: {}'.format(submission.__dict__))
     return submission
 
