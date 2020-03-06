@@ -11,7 +11,7 @@ import tweepy
 import ffmpeg
 
 # Flight variables
-TEST_MODE = False
+TEST_MODE = True
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -75,6 +75,7 @@ def create_video_from_urls(media_urls):
 
 def post_video_to_reddit(media_urls, title):
     video_fp, thumbnail_path = create_video_from_urls(media_urls)
+    title += ' ({} images!)'.format(len(media_urls))
     submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=thumbnail_path, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
     logger.info('Reddit video submission: {}'.format(submission.__dict__))
     return submission
@@ -104,7 +105,9 @@ def create_reddit_comment(media_urls, tweet_url, submission):
     logger.info('Reddit reply: {}'.format(reply.__dict__))
     return reply
 
-def create_imgur_post(media_url, title, tweet_url):
+def create_imgur_post(media_url, title, tweet_url, idx, num_images):
+    if num_images > 1:
+        title = title + ' (Image {})'.format(idx + 1) # 1-indexed when displaying
     headers = {'Authorization': 'Bearer ' + secrets['Imgur']['ACCESS_TOKEN']}
     data = {'title': title,
             'image': media_url,
@@ -225,18 +228,19 @@ try:
     submissions = []
     for tweet_url, media_urls, date in media_files:
         date_string = datetime.strftime(date, '%m/%d/%Y')
-        title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
+        base_title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
 
         image_uploads = []
-        for media_url in media_urls: # post images to imgur
-            upload = create_imgur_post(media_url, title, tweet_url)
+        num_images = len(media_urls)
+        for idx, media_url in enumerate(media_urls): # post images to imgur
+            upload = create_imgur_post(media_url, base_title, tweet_url, idx, num_images)
             image_uploads.append(upload)
-        if len(media_urls) > 1:
-            submission = post_video_to_reddit(media_urls, title) # post video to reddit
+        if num_images > 1:
+            submission = post_video_to_reddit(media_urls, base_title) # post video to reddit
             cleanup_media()
         else: # only one image in tweet
             image_url = image_uploads[0][1]
-            submission = post_link_to_reddit(image_url, title) # post link to imgur post       
+            submission = post_link_to_reddit(image_url, base_title) # post link to imgur post       
         
         image_ids = [iid for iid, url in image_uploads]
         update_imgur_album(image_ids)
