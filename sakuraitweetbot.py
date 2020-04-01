@@ -192,7 +192,7 @@ try:
     # Get last 200 tweets
     SCREEN_NAME = 'Sora_Sakurai'
     TWEET_COUNT = 200
-    tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, include_rts=False, exclude_replies=True)
+    tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, include_rts=False, exclude_replies=False)
     logger.info('Fetched last {} tweets from @{}.'.format(TWEET_COUNT, SCREEN_NAME))
 
     # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
@@ -226,6 +226,15 @@ try:
 
     # Iterate over filtered tweets to post to imgur/reddit, store in list outside scope
     submissions = []
+
+    # Quick and hacky/dirty way to consolidate all pics into one post if extra tweets (i.e. in a reply)
+    if (len(media_files) > 1):
+        media_files.reverse() # if more than one tweet, most likely a reply in which case API returns most recent first -- should reverse for picture ordering
+        # Extract all other media_urls in other tweets and place in first media_files url list
+        for _, media_urls, _ in media_files[1:]:
+            media_files[0][1].extend(media_urls)
+        media_files = [media_files[0]] # remove all other tweets -- can fix this whole process later...
+
     for tweet_url, media_urls, date in media_files:
         date_string = datetime.strftime(date, '%m/%d/%Y')
         base_title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
