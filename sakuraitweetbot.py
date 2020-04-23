@@ -4,6 +4,7 @@ import urllib
 import logging
 import glob
 from datetime import datetime, timedelta
+import time
 from configparser import ConfigParser
 
 import praw
@@ -116,8 +117,18 @@ def create_imgur_post(media_url, title, tweet_url, idx, num_images):
     logger.info('data for CREATE_IMGUR_POST POST request: {}'.format(data))
     request = requests.post(config['Imgur']['UPLOAD_IMAGE_API'], data=data, headers=headers)
 
-    json = request.json()
-    logger.info('JSON for CREATE_IMGUR_POST POST request:\n{}'.format(json))
+    MAX_ATTEMPTS = 5
+    for i in range(0, MAX_ATTEMPTS):
+        json = request.json()
+        logger.info('JSON for CREATE_IMGUR_POST POST request, attempt #{}:\n{}'.format(i, json))
+        if json['success']:
+            break
+        else:
+            if (i == MAX_ATTEMPTS - 1):
+                logger.warning('Failed POST request after {} attempts. Terminating.'.format(MAX_ATTEMPTS))
+            else:
+                logger.info('Failed POST request, attempt #{}, retrying... ({} max attempts)'.format(i, MAX_ATTEMPTS))
+                time.sleep(5) # sleep for 5 seconds; find better way to do this, not ideal.
 
     image_id = json['data']['id']
     image_url = json['data']['link']
