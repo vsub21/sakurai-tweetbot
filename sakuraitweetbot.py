@@ -127,8 +127,8 @@ def create_imgur_post(media_url, title, tweet_url, idx, num_images):
             if (i == MAX_ATTEMPTS - 1):
                 logger.warning('Failed POST request after {} attempts. Terminating.'.format(MAX_ATTEMPTS))
             else:
-                logger.info('Failed POST request, attempt #{}, retrying... ({} max attempts)'.format(i, MAX_ATTEMPTS))
-                time.sleep(5) # sleep for 5 seconds; find better way to do this, not ideal.
+                logger.info('Failed POST request, attempt #{}, retrying... ({} max attempts)'.format(i + 1, MAX_ATTEMPTS)) # 1-index attempts
+                time.sleep(90) # sleep for 90 seconds; find better way to do this, not ideal.
 
     image_id = json['data']['id']
     image_url = json['data']['link']
