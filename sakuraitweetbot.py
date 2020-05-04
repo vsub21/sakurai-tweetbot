@@ -12,7 +12,7 @@ import tweepy
 import ffmpeg
 
 # Flight variables
-TEST_MODE = True
+TEST_MODE = False
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -120,7 +120,7 @@ def create_imgur_post(media_url, title, tweet_url, idx, num_images):
     MAX_ATTEMPTS = 5
     for i in range(0, MAX_ATTEMPTS):
         json = request.json()
-        logger.info('JSON for CREATE_IMGUR_POST POST request, attempt #{}:\n{}'.format(i, json))
+        logger.info('JSON for CREATE_IMGUR_POST POST request, attempt #{}:\n{}'.format(i + 1, json))
         if json['success']:
             break
         else:
