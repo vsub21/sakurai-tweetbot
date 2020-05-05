@@ -115,12 +115,12 @@ def create_imgur_post(media_url, title, tweet_url, idx, num_images):
             'description': 'Original Tweet: {}'.format(tweet_url).replace('.', '&#46;'), # imgur bug workaround, see https://github.com/DamienDennehy/Imgur.API/issues/8
             'type': 'URL'}
     logger.info('data for CREATE_IMGUR_POST POST request: {}'.format(data))
-    request = requests.post(config['Imgur']['UPLOAD_IMAGE_API'], data=data, headers=headers)
 
     MAX_ATTEMPTS = 5
     for i in range(0, MAX_ATTEMPTS):
+        request = requests.post(config['Imgur']['UPLOAD_IMAGE_API'], data=data, headers=headers)
         json = request.json()
-        logger.info('JSON for CREATE_IMGUR_POST POST request, attempt #{}:\n{}'.format(i + 1, json))
+        logger.info('JSON for CREATE_IMGUR_POST POST request, attempt #{}:\n{}'.format(i + 1, json)) # 1-index attempts
         if json['success']:
             break
         else:
