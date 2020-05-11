@@ -6,8 +6,8 @@ Inspired by WiWiWeb's [SakuraiBot](https://github.com/Wiwiweb/SakuraiBot-Ultimat
 To use the video upload option, you must have [FFmpeg](https://www.ffmpeg.org/) installed and added to your PATH variable.
 
 ### To-do:
-- Move to Azure functions
+- Move to Azure Functions
 - Remove dependency on ffmpeg
   - Check out using opencv or preferably different/smaller library
 - Reupload album on imgur to bypass false-positive NSFW filter
-- Add support for Sakurai replies (?) -- happened once on 02/27
+- Add support for Sakurai replies
