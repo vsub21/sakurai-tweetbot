@@ -1,3 +1,5 @@
+import os
+import stat
 from datetime import datetime, timezone
 import logging
 
@@ -17,6 +19,7 @@ def main(mytimer: func.TimerRequest) -> None:
 
     logger = logging.getLogger(__name__)
 
+    # Time check
     utc_timestamp = datetime.utcnow().replace(
         tzinfo=timezone.utc).isoformat()
 
@@ -25,6 +28,12 @@ def main(mytimer: func.TimerRequest) -> None:
 
     logger.info('Python timer trigger function ran at {} (UTC)'.format(utc_timestamp))
 
+    # Check if ffmpeg binary is executable, modify chmod if not
+    ffmpeg_stat = os.stat(sakuraitweetbot.FFMPEG_PATH)
+    if (ffmpeg_stat | stat.S_IXUSR) != ffmpeg_stat:
+        os.chmod(sakuraitweetbot.FFMPEG_PATH, (ffmpeg_stat & stat.S_IXUSR))
+
+    # Run sakuraitweetbot main
     sakuraitweetbot.main()
 
 if __name__ == '__main__':
