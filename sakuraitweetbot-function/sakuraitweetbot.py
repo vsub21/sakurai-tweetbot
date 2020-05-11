@@ -60,7 +60,9 @@ def create_video_from_urls(media_urls):
     # ffmpeg conversion
     image_seq_fp = '{}/media/image-%03d.jpg'.format(cwd_path)
     video_fp = '{}/media/video.mp4'.format(cwd_path)
-    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5
+
+    # Equivalent to cmd line: "../bin/ffmpeg-git-20200504-amd64-static/ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
+    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd='../bin/ffmpeg-git-20200504-amd64-static/ffmpeg', quiet=True)
 
     logger.info('ffmpeg stdout: {}'.format(out))
     logger.info('ffmpeg stderr: {}'.format(err))
