@@ -133,7 +133,6 @@ dmypy.json
 run.bat
 
 # Azure Functions artifacts
-bin
 obj
 appsettings.json
 local.settings.json
