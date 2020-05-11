@@ -13,7 +13,7 @@ import tweepy
 import ffmpeg
 
 # Flight variables
-TEST_MODE = False
+TEST_MODE = True
 
 # Read config/secrets files
 secrets = ConfigParser()
@@ -25,18 +25,7 @@ config.read('cfg/config.ini')
 # Current working directory path
 cwd_path = pathlib.Path(os.getcwd()).as_posix()
 
-# Logger setup
-logging.basicConfig(
-    filename='{}/logs/{}{}.log'.format(cwd_path, datetime.today().strftime("%Y-%m-%d"),'_test' if TEST_MODE else ''),
-    filemode='w',
-    format='%(asctime)s %(levelname)s: %(message)s',
-    datefmt='%m/%d/%Y %I:%M:%S %p',
-    level=logging.DEBUG
-)
-
 logger = logging.getLogger(__name__)
-
-logger.info('TEST_MODE={}'.format(TEST_MODE))
 
 def cleanup_media():
     pics = glob.glob('{}/media/*.jpg'.format(cwd_path))
@@ -78,14 +67,14 @@ def create_video_from_urls(media_urls):
 
     return video_fp, thumbnail_path
 
-def post_video_to_reddit(media_urls, title):
+def post_video_to_reddit(subreddit, media_urls, title):
     video_fp, thumbnail_path = create_video_from_urls(media_urls)
     title += ' ({} images!)'.format(len(media_urls))
     submission = subreddit.submit_video(title=title, video_path=video_fp, videogif=False, thumbnail_path=thumbnail_path, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
     logger.info('Reddit video submission: {}'.format(submission.__dict__))
     return submission
 
-def post_link_to_reddit(url, title):
+def post_link_to_reddit(subreddit, url, title):
     submission = subreddit.submit(title=title, url=url, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
     logger.info('Reddit link submission: {}'.format(submission.__dict__))
     return submission
@@ -194,98 +183,105 @@ def post_to_imgur_gallery(image_ids, title):
     json = request.json()
     logger.info('JSON for POST_TO_IMGUR_GALLERY POST POST request:\n{}'.format(json))
 
-# Cleanup media before start
-cleanup_media()
+def main():
+    logger.info('TEST_MODE={}'.format(TEST_MODE))
 
-try:
-    # Twitter auth
-    twitter = tweepy.AppAuthHandler(consumer_key=secrets['Twitter']['CONSUMER_KEY'], 
-                                consumer_secret=secrets['Twitter']['CONSUMER_SECRET'])
-    logger.info('Twitter auth complete.')
-    api = tweepy.API(twitter)
+    # Cleanup media before start
+    cleanup_media()
+    logger.info('Cleaned up media.')
 
-    # Get last 200 tweets
-    SCREEN_NAME = 'Sora_Sakurai'
-    TWEET_COUNT = 200
-    tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, include_rts=False, exclude_replies=False)
-    logger.info('Fetched last {} tweets from @{}.'.format(TWEET_COUNT, SCREEN_NAME))
+    try:
+        # Twitter auth
+        twitter = tweepy.AppAuthHandler(consumer_key=secrets['Twitter']['CONSUMER_KEY'], 
+                                    consumer_secret=secrets['Twitter']['CONSUMER_SECRET'])
+        logger.info('Twitter auth complete.')
+        api = tweepy.API(twitter)
 
-    # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
-    media_files = []
-    yday = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
-    logger.info('Lower bound time constraint: {}'.format(yday))
+        # Get last 200 tweets
+        SCREEN_NAME = 'Sora_Sakurai'
+        TWEET_COUNT = 200
+        tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, include_rts=False, exclude_replies=False)
+        logger.info('Fetched last {} tweets from @{}.'.format(TWEET_COUNT, SCREEN_NAME))
 
-    for tweet in tweets:
-        media = tweet.entities.get('media', [])
-        text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}"
-        date = tweet.created_at
-        if (date > yday): # tweets are ordered by newest to oldest, break to avoid parsing unnecessary tweets
-            if (len(media) > 0 and not (' ' in text)):
-                tweet_url = media[0].get('expanded_url')
-                media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
-                media_files.append((tweet_url, media_urls, date))
-        else: 
-            break
-    logger.info('Filtered tweets set: {}'.format(media_files))
+        # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
+        media_files = []
+        yday = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
+        logger.info('Lower bound time constraint: {}'.format(yday))
 
-    # Reddit auth
-    reddit = praw.Reddit(client_id=secrets['Reddit']['CLIENT_ID'],
-                        client_secret=secrets['Reddit']['CLIENT_SECRET'],
-                        user_agent=secrets['Reddit']['USER_AGENT'],
-                        username=secrets['Reddit']['USERNAME_TEST' if TEST_MODE else 'USERNAME'],
-                        password=secrets['Reddit']['PASSWORD'])
-    logger.info('Reddit auth complete.')
+        for tweet in tweets:
+            media = tweet.entities.get('media', [])
+            text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}"
+            date = tweet.created_at
+            if (date > yday): # tweets are ordered by newest to oldest, break to avoid parsing unnecessary tweets
+                if (len(media) > 0 and not (' ' in text)):
+                    tweet_url = media[0].get('expanded_url')
+                    media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
+                    media_files.append((tweet_url, media_urls, date))
+            else: 
+                break
+        logger.info('Filtered tweets set: {}'.format(media_files))
 
-    subreddit = reddit.subreddit(config['Reddit']['SUBREDDIT_TEST' if TEST_MODE else 'SUBREDDIT'])
-    logger.info('Using subreddit: {}'.format(subreddit))
+        # Reddit auth
+        reddit = praw.Reddit(client_id=secrets['Reddit']['CLIENT_ID'],
+                            client_secret=secrets['Reddit']['CLIENT_SECRET'],
+                            user_agent=secrets['Reddit']['USER_AGENT'],
+                            username=secrets['Reddit']['USERNAME_TEST' if TEST_MODE else 'USERNAME'],
+                            password=secrets['Reddit']['PASSWORD'])
+        logger.info('Reddit auth complete.')
 
-    # Iterate over filtered tweets to post to imgur/reddit, store in list outside scope
-    submissions = []
+        subreddit = reddit.subreddit(config['Reddit']['SUBREDDIT_TEST' if TEST_MODE else 'SUBREDDIT'])
+        logger.info('Using subreddit: {}'.format(subreddit))
 
-    # Quick and hacky/dirty way to consolidate all pics into one post if extra tweets (i.e. in a reply)
-    if (len(media_files) > 1):
-        media_files.reverse() # if more than one tweet, most likely a reply in which case API returns most recent first -- should reverse for picture ordering
-        # Extract all other media_urls in other tweets and place in first media_files url list
-        for _, media_urls, _ in media_files[1:]:
-            media_files[0][1].extend(media_urls)
-        media_files = [media_files[0]] # remove all other tweets -- can fix this whole process later...
+        # Iterate over filtered tweets to post to imgur/reddit, store in list outside scope
+        submissions = []
 
-    for tweet_url, media_urls, date in media_files:
-        date_string = datetime.strftime(date, '%m/%d/%Y')
-        base_title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
+        # Quick and hacky/dirty way to consolidate all pics into one post if extra tweets (i.e. in a reply)
+        if (len(media_files) > 1):
+            media_files.reverse() # if more than one tweet, most likely a reply in which case API returns most recent first -- should reverse for picture ordering
+            # Extract all other media_urls in other tweets and place in first media_files url list
+            for _, media_urls, _ in media_files[1:]:
+                media_files[0][1].extend(media_urls)
+            media_files = [media_files[0]] # remove all other tweets -- can fix this whole process later...
 
-        image_uploads = []
-        num_images = len(media_urls)
-        for idx, media_url in enumerate(media_urls): # post images to imgur
-            upload = create_imgur_post(media_url, base_title, tweet_url, idx, num_images)
-            image_uploads.append(upload)
-        if num_images > 1:
-            submission = post_video_to_reddit(media_urls, base_title) # post video to reddit
-            cleanup_media()
-        else: # only one image in tweet
-            image_url = image_uploads[0][1]
-            submission = post_link_to_reddit(image_url, base_title) # post link to imgur post       
-        
-        image_ids = [iid for iid, url in image_uploads]
-        
-        if not TEST_MODE:
-            update_imgur_album(image_ids)
-        
-        # Create Reddit comment
-        reply = create_reddit_comment(media_urls, tweet_url, submission)
+        for tweet_url, media_urls, date in media_files:
+            date_string = datetime.strftime(date, '%m/%d/%Y')
+            base_title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
 
-        # Sticky and mod distinguish
-        submission.mod.distinguish(how='yes', sticky=False)
-        submission.mod.approve()
-        logger.info('Distinguished, approved submission {}'.format(submission))
+            image_uploads = []
+            num_images = len(media_urls)
+            for idx, media_url in enumerate(media_urls): # post images to imgur
+                upload = create_imgur_post(media_url, base_title, tweet_url, idx, num_images)
+                image_uploads.append(upload)
+            if num_images > 1:
+                submission = post_video_to_reddit(subreddit, media_urls, base_title) # post video to reddit
+                cleanup_media()
+            else: # only one image in tweet
+                image_url = image_uploads[0][1]
+                submission = post_link_to_reddit(subreddit, image_url, base_title) # post link to imgur post       
+            
+            image_ids = [iid for iid, url in image_uploads]
+            
+            if not TEST_MODE:
+                update_imgur_album(image_ids)
+            
+            # Create Reddit comment
+            reply = create_reddit_comment(media_urls, tweet_url, submission)
 
-        reply.mod.distinguish(how='yes', sticky=True)
-        reply.mod.approve()
-        logger.info('Distinguished, approved stickied comment {}'.format(reply))
+            # Sticky and mod distinguish
+            submission.mod.distinguish(how='yes', sticky=False)
+            submission.mod.approve()
+            logger.info('Distinguished, approved submission {}'.format(submission))
 
-        submissions.append((submission, reply))
+            reply.mod.distinguish(how='yes', sticky=True)
+            reply.mod.approve()
+            logger.info('Distinguished, approved stickied comment {}'.format(reply))
 
-    logger.info('Final submissions: {}'.format(submissions))
+            submissions.append((submission, reply))
 
-except Exception as e:
-    logger.exception(e)
+        logger.info('Final submissions: {}'.format(submissions))
+
+    except Exception as e:
+        logger.exception(e)
+
+if __name__ == '__main__':
+    main()
