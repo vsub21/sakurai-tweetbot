@@ -1,6 +1,7 @@
 import os
 import requests
 import urllib
+import pathlib
 import logging
 import glob
 from datetime import datetime, timedelta
@@ -21,9 +22,12 @@ secrets.read('cfg/secrets.ini')
 config = ConfigParser()
 config.read('cfg/config.ini')
 
+# Current working directory path
+cwd_path = pathlib.Path(os.getcwd()).as_posix()
+
 # Logger setup
 logging.basicConfig(
-    filename='{}/logs/{}{}.log'.format(secrets['Local']['repo_path'], datetime.today().strftime("%Y-%m-%d"),'_test' if TEST_MODE else ''),
+    filename='{}/logs/{}{}.log'.format(cwd_path, datetime.today().strftime("%Y-%m-%d"),'_test' if TEST_MODE else ''),
     filemode='w',
     format='%(asctime)s %(levelname)s: %(message)s',
     datefmt='%m/%d/%Y %I:%M:%S %p',
@@ -35,8 +39,8 @@ logger = logging.getLogger(__name__)
 logger.info('TEST_MODE={}'.format(TEST_MODE))
 
 def cleanup_media():
-    pics = glob.glob('{}/media/*.jpg'.format(secrets['Local']['repo_path']))
-    vids = glob.glob('{}/media/*.mp4'.format(secrets['Local']['repo_path']))
+    pics = glob.glob('{}/media/*.jpg'.format(cwd_path))
+    vids = glob.glob('{}/media/*.mp4'.format(cwd_path))
     to_delete = pics + vids
     for fp in to_delete:
         try:
@@ -49,7 +53,7 @@ def cleanup_media():
 
 def post_image_to_reddit(media_url, title):
     # Download image
-    image_fp = '{}/media/image.jpg'.format(secrets['Local']['repo_path'])
+    image_fp = '{}/media/image.jpg'.format(cwd_path)
     urllib.request.urlretrieve(media_url, image_fp)
 
     # Reddit upload
@@ -58,15 +62,15 @@ def post_image_to_reddit(media_url, title):
 def create_video_from_urls(media_urls):
     # Download images
     for idx, media_url in enumerate(media_urls):
-        image_fp = '{}/media/image-{}.jpg'.format(secrets['Local']['repo_path'], str(idx).zfill(3))
+        image_fp = '{}/media/image-{}.jpg'.format(cwd_path, str(idx).zfill(3))
         if idx == 0:
             thumbnail_path = image_fp
         urllib.request.urlretrieve(media_url, image_fp)
         logger.info('Downloaded image {}.'.format(image_fp))
         
     # ffmpeg conversion
-    image_seq_fp = '{}/media/image-%03d.jpg'.format(secrets['Local']['repo_path'])
-    video_fp = '{}/media/video.mp4'.format(secrets['Local']['repo_path'])
+    image_seq_fp = '{}/media/image-%03d.jpg'.format(cwd_path)
+    video_fp = '{}/media/video.mp4'.format(cwd_path)
     out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(quiet=True) # ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5
 
     logger.info('ffmpeg stdout: {}'.format(out))
@@ -263,7 +267,9 @@ try:
             submission = post_link_to_reddit(image_url, base_title) # post link to imgur post       
         
         image_ids = [iid for iid, url in image_uploads]
-        update_imgur_album(image_ids)
+        
+        if not TEST_MODE:
+            update_imgur_album(image_ids)
         
         # Create Reddit comment
         reply = create_reddit_comment(media_urls, tweet_url, submission)
