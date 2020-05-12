@@ -10,3 +10,4 @@ Currently deployed on Azure Functions.
 ## To-do:
 - Fix logging statements on Azure to include debug level statements
 - Research what can be removed from ffmpeg binaries folder (i.e. model/, ffprobe, etc.)
+- Look in to adding TEST_MODE as environment variable

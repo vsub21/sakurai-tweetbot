@@ -13,7 +13,7 @@ import tweepy
 import ffmpeg
 
 # Flight variables
-TEST_MODE = True
+TEST_MODE = False
 
 # Get path for parent directory (PathLike)
 parent = pathlib.Path(__file__).parent
