@@ -94,7 +94,7 @@ def create_reddit_comment(media_urls, tweet_url, submission):
     
     comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\n'
     comment += 'Inspired by my dad: /u/SakuraiBot\n\n'
-    comment += '[Album of all Smash Pics-of-the-Day!](https://imgur.com/a/{})'.format(os.environ['imgur_album_id'])
+    comment += '[Album of all Smash Pics-of-the-Day!](https://imgur.com/a/{})'.format(os.environ['IMGUR_ALBUM_ID'])
     comment += '\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'
     
     reply = submission.reply(comment)
@@ -104,7 +104,7 @@ def create_reddit_comment(media_urls, tweet_url, submission):
 def create_imgur_post(media_url, title, tweet_url, idx, num_images):
     if num_images > 1:
         title = title + ' (Image {})'.format(idx + 1) # 1-indexed when displaying
-    headers = {'Authorization': 'Bearer ' + os.environ['imgur_access_token']}
+    headers = {'Authorization': 'Bearer ' + os.environ['IMGUR_ACCESS_TOKEN']}
     data = {'title': title,
             'image': media_url,
             'description': 'Original Tweet: {}'.format(tweet_url).replace('.', '&#46;'), # imgur bug workaround, see https://github.com/DamienDennehy/Imgur.API/issues/8
@@ -131,7 +131,7 @@ def create_imgur_post(media_url, title, tweet_url, idx, num_images):
     return image_id, image_url
 
 def create_imgur_album():
-    headers = {'Authorization': 'Bearer ' + os.environ['imgur_access_token']}
+    headers = {'Authorization': 'Bearer ' + os.environ['IMGUR_ACCESS_TOKEN']}
     data = {'title': 'New Smash Pic-of-the-Day Album! by /u/SakuraiTweetBot',
             'description': 'An album containing each Smash pic-of-the-day posted by @Sora_Sakurai on Twitter, mirrored to /r/smashbros on Reddit by /u/SakuraiTweetBot.',
             'privacy': 'public'       
@@ -146,9 +146,9 @@ def create_imgur_album():
     return album_hash
 
 def update_imgur_album(image_ids):
-    headers = {'Authorization': 'Bearer ' + os.environ['imgur_access_token']}
+    headers = {'Authorization': 'Bearer ' + os.environ['IMGUR_ACCESS_TOKEN']}
     # GET request to get ids of images in album in order
-    request = requests.get(config['Imgur']['CREATE_ALBUM_API'] + '/{}/images'.format(os.environ['imgur_album_id']), headers=headers)
+    request = requests.get(config['Imgur']['CREATE_ALBUM_API'] + '/{}/images'.format(os.environ['IMGUR_ALBUM_ID']), headers=headers)
     
     album_ids = [image['id'] for image in request.json()['data']]
     logger.info('album_ids from UPDATE_IMGUR_ALBUM GET request: {}'.format(album_ids))
@@ -158,7 +158,7 @@ def update_imgur_album(image_ids):
     # POST request to set image ids in album
     data = {'ids[]': album_ids}
 
-    request = requests.post(config['Imgur']['CREATE_ALBUM_API'] + '/{}/'.format(os.environ['imgur_album_id']), data=data, headers=headers)
+    request = requests.post(config['Imgur']['CREATE_ALBUM_API'] + '/{}/'.format(os.environ['IMGUR_ALBUM_ID']), data=data, headers=headers)
     logger.info('data for UPDATE_IMGUR_ALBUM POST request: {}'.format(data))
 
     json = request.json()
@@ -167,14 +167,14 @@ def update_imgur_album(image_ids):
     # PUT request to update cover to id of top of album
     data = {'cover': album_ids[0]}
 
-    request = requests.put(config['Imgur']['CREATE_ALBUM_API'] + '/{}'.format(os.environ['imgur_album_id']), data=data, headers=headers)
+    request = requests.put(config['Imgur']['CREATE_ALBUM_API'] + '/{}'.format(os.environ['IMGUR_ALBUM_ID']), data=data, headers=headers)
     logger.info('data for UPDATE_IMGUR_ALBUM PUT request: {}'.format(data))
 
     json = request.json()
     logger.info('JSON for UPDATE_IMGUR_ALBUM PUT request:\n{}'.format(json))
 
 def post_to_imgur_gallery(image_ids, title):
-    headers = {'Authorization': 'Bearer ' + os.environ['imgur_access_token']}
+    headers = {'Authorization': 'Bearer ' + os.environ['IMGUR_ACCESS_TOKEN']}
     # POST request to add image_ids to imgur public gallery
     data = {'title': title,
             'terms': 1,
@@ -194,8 +194,8 @@ def main():
 
     try:
         # Twitter auth
-        twitter = tweepy.AppAuthHandler(consumer_key=os.environ['twitter_consumer_key'], 
-                                    consumer_secret=os.environ['twitter_consumer_secret'])
+        twitter = tweepy.AppAuthHandler(consumer_key=os.environ['TWITTER_CONSUMER_KEY'], 
+                                    consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'])
         logger.info('Twitter auth complete.')
         api = tweepy.API(twitter)
 
@@ -224,11 +224,11 @@ def main():
         logger.info('Filtered tweets set: {}'.format(media_files))
 
         # Reddit auth
-        reddit = praw.Reddit(client_id=os.environ['reddit_client_id'],
-                            client_secret=os.environ['reddit_client_secret'],
-                            user_agent=os.environ['reddit_user_agent'],
-                            username=os.environ['reddit_username_test' if TEST_MODE else 'reddit_username'],
-                            password=os.environ['reddit_password'])
+        reddit = praw.Reddit(client_id=os.environ['REDDIT_CLIENT_ID'],
+                            client_secret=os.environ['REDDIT_CLIENT_SECRET'],
+                            user_agent=os.environ['REDDIT_USER_AGENT'],
+                            username=os.environ['REDDIT_USERNAME_TEST' if TEST_MODE else 'REDDIT_USERNAME'],
+                            password=os.environ['REDDIT_PASSWORD'])
         logger.info('Reddit auth complete.')
 
         subreddit = reddit.subreddit(config['Reddit']['SUBREDDIT_TEST' if TEST_MODE else 'SUBREDDIT'])
