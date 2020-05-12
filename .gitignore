@@ -129,11 +129,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# config/secrets files
-*.ini
-
-# vscode
-.vscode/
-
 # task scheduler
 run.bat
+
+# Azure Functions artifacts
+obj
+appsettings.json
+local.settings.json
+.python_packages
