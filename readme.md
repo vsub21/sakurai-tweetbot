@@ -6,3 +6,7 @@ Reddit bot for [/r/smashbros](https://www.reddit.com/r/smashbros/). Fetches new 
 Inspired by WiWiWeb's [SakuraiBot](https://github.com/Wiwiweb/SakuraiBot-Ultimate).
 
 Currently deployed on Azure Functions.
+
+## To-do:
+- Fix logging statements on Azure to include debug level statements
+- Research what can be removed from ffmpeg binaries folder (i.e. model/, ffprobe, etc.)
