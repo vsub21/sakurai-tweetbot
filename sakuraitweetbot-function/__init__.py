@@ -29,7 +29,7 @@ def main(mytimer: func.TimerRequest) -> None:
     logger.info('Python timer trigger function ran at {} (UTC)'.format(utc_timestamp))
 
     # Check if ffmpeg binary is executable, modify chmod if not
-    ffmpeg_stat = os.stat(sakuraitweetbot.FFMPEG_PATH)
+    ffmpeg_stat = os.stat(sakuraitweetbot.FFMPEG_PATH).st_mode
     if (ffmpeg_stat | stat.S_IXUSR) != ffmpeg_stat:
         os.chmod(sakuraitweetbot.FFMPEG_PATH, (ffmpeg_stat & stat.S_IXUSR))
 
