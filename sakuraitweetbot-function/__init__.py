@@ -30,11 +30,11 @@ def main(mytimer: func.TimerRequest) -> None:
 
     # Check if ffmpeg binary is executable, modify chmod if not
     ffmpeg_stat = os.stat(sakuraitweetbot.FFMPEG_PATH).st_mode
-    logger.info('ffmpeg_stat: ', ffmpeg_stat)
+    logger.info('ffmpeg_stat: {}'.format(ffmpeg_stat))
     if (ffmpeg_stat | stat.S_IXUSR) != ffmpeg_stat:
         # os.chmod(sakuraitweetbot.FFMPEG_PATH, (ffmpeg_stat & stat.S_IXUSR)) # not working in azure functions
         chmod_result = os.popen("chmod u+x {}".format(sakuraitweetbot.FFMPEG_PATH)).read()
-        logger.info('chmod_result: ', chmod_result)
+        logger.info('chmod_result: '.format(chmod_result))
 
     # Run sakuraitweetbot main
     sakuraitweetbot.main()
