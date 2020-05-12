@@ -19,17 +19,14 @@ TEST_MODE = True
 config = ConfigParser()
 config.read('cfg/config.ini')
 
-# Current working directory path
-CWD_PATH = pathlib.Path(os.getcwd()).as_posix()
-
 # FFMPEG path
-FFMPEG_PATH = '{}/../bin/ffmpeg-git-20200504-amd64-static/ffmpeg'.format(CWD_PATH)
+FFMPEG_PATH = '../bin/ffmpeg-git-20200504-amd64-static/ffmpeg'
 
 logger = logging.getLogger(__name__)
 
 def cleanup_media():
-    pics = glob.glob('{}/media/*.jpg'.format(CWD_PATH))
-    vids = glob.glob('{}/media/*.mp4'.format(CWD_PATH))
+    pics = glob.glob('/media/*.jpg')
+    vids = glob.glob('/media/*.mp4')
     to_delete = pics + vids
     for fp in to_delete:
         try:
@@ -42,7 +39,7 @@ def cleanup_media():
 
 def post_image_to_reddit(media_url, title):
     # Download image
-    image_fp = '{}/media/image.jpg'.format(CWD_PATH)
+    image_fp = '/media/image.jpg'
     urllib.request.urlretrieve(media_url, image_fp)
 
     # Reddit upload
@@ -51,15 +48,15 @@ def post_image_to_reddit(media_url, title):
 def create_video_from_urls(media_urls):
     # Download images
     for idx, media_url in enumerate(media_urls):
-        image_fp = '{}/media/image-{}.jpg'.format(CWD_PATH, str(idx).zfill(3))
+        image_fp = '/media/image-{}.jpg'.format(str(idx).zfill(3))
         if idx == 0:
             thumbnail_path = image_fp
         urllib.request.urlretrieve(media_url, image_fp)
         logger.info('Downloaded image {}.'.format(image_fp))
         
     # ffmpeg conversion
-    image_seq_fp = '{}/media/image-%03d.jpg'.format(CWD_PATH)
-    video_fp = '{}/media/video.mp4'.format(CWD_PATH)
+    image_seq_fp = '/media/image-%03d.jpg'
+    video_fp = '/media/video.mp4'
 
     # Equivalent to cmd line: "../bin/ffmpeg-git-20200504-amd64-static/ffmpeg -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
     out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=FFMPEG_PATH, quiet=True)
