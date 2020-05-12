@@ -10,7 +10,7 @@ from . import sakuraitweetbot
 def main(mytimer: func.TimerRequest) -> None:
     # Logger setup
     logging.basicConfig(
-        filename='{}/logs/{}{}.log'.format(sakuraitweetbot.cwd_path, datetime.today().strftime("%Y-%m-%d"),'_test' if sakuraitweetbot.TEST_MODE else ''),
+        filename='{}/logs/{}{}.log'.format(sakuraitweetbot.CWD_PATH, datetime.today().strftime("%Y-%m-%d"),'_test' if sakuraitweetbot.TEST_MODE else ''),
         filemode='w',
         format='%(asctime)s %(levelname)s (%(name)s): %(message)s',
         datefmt='%m/%d/%Y %I:%M:%S %p',
