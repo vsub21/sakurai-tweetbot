@@ -18,6 +18,9 @@ TEST_MODE = os.environ['TEST_MODE'] == 'True'
 # Get path for parent directory (PathLike)
 parent = pathlib.Path(__file__).parent
 
+# Path for temp folder in Azure Functions (Linux)
+tmp = pathlib.Path("/tmp")
+
 # Read config files
 config = ConfigParser()
 config.read(parent / 'cfg/config.ini')
@@ -28,8 +31,8 @@ FFMPEG_PATH = parent / '../bin/ffmpeg-git-20200504-amd64-static/ffmpeg'
 logger = logging.getLogger(__name__)
 
 def cleanup_media():
-    pics = glob.glob(str(parent / 'media/*.jpg')) # glob doesn't accept PathLike, see: https://bugs.python.org/issue35453
-    vids = glob.glob(str(parent / 'media/*.mp4'))
+    pics = glob.glob(str(tmp / '*.jpg')) # glob doesn't accept PathLike, see: https://bugs.python.org/issue35453
+    vids = glob.glob(str(tmp / '*.mp4'))
     to_delete = pics + vids
     for fp in to_delete:
         try:
@@ -42,7 +45,7 @@ def cleanup_media():
 
 def post_image_to_reddit(media_url, title):
     # Download image
-    image_fp = parent / 'media/image.jpg'
+    image_fp = tmp / 'image.jpg'
     urllib.request.urlretrieve(media_url, image_fp) # accepts PathLike
 
     # Reddit upload
@@ -51,15 +54,15 @@ def post_image_to_reddit(media_url, title):
 def create_video_from_urls(media_urls):
     # Download images
     for idx, media_url in enumerate(media_urls):
-        image_fp = parent / 'media/image-{}.jpg'.format(str(idx).zfill(3))
+        image_fp = tmp / 'image-{}.jpg'.format(str(idx).zfill(3))
         if idx == 0:
             thumbnail_path = image_fp
         urllib.request.urlretrieve(media_url, image_fp) # accepts PathLike
         logger.info('Downloaded image {}.'.format(image_fp))
         
     # ffmpeg conversion
-    image_seq_fp = str(parent / 'media/image-%03d.jpg') # TODO: need to check if ffmpeg.input accepts PathLike, see: https://github.com/kkroening/ffmpeg-python/issues/364
-    video_fp = str(parent / 'media/video.mp4')
+    image_seq_fp = str(tmp / 'image-%03d.jpg') # TODO: need to check if ffmpeg.input accepts PathLike, see: https://github.com/kkroening/ffmpeg-python/issues/364
+    video_fp = str(tmp / 'video.mp4')
 
     # Equivalent to cmd line: "{FFMPEG_PATH} -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
     out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=FFMPEG_PATH, quiet=True)
