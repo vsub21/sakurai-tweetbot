@@ -14,6 +14,7 @@ env:
   AZURE_FUNCTIONAPP_NAME: sakuraitweetbot # set this to your application's name
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'   # set this to the path to your web app project, defaults to the repository root
   PYTHON_VERSION: '3.7'                 # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  FFMPEG_PATH: 'bin/ffmpeg-git-20200504-amd64-static/ffmpeg' # ffmpeg path
 
 jobs:
   build-and-deploy:
@@ -27,14 +28,22 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: 'Resolve Project Dependencies Using Pip and make FFMPEG executable'
+    - name: 'Resolve Project Dependencies Using Pip'
       shell: bash
       run: |
         pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
         python -m pip install --upgrade pip
         pip install -r requirements.txt --target=".python_packages/lib/site-packages"
-        chmod u+x bin/ffmpeg-git-20200504-amd64-static/ffmpeg
         popd
+
+    - name: 'Make ffmpeg executable'
+      shell: bash
+      run: |
+        echo "Making executable the following file: ${{ env.FFMPEG_PATH }}"
+        ls -la ${{ env.FFMPEG_PATH }}
+        chmod 777 ${{ env.FFMPEG_PATH }}
+        ls -la ${{ env.FFMPEG_PATH }}
+
     - name: 'Run Azure Functions Action'
       uses: Azure/functions-action@v1.1.4
       id: fa
