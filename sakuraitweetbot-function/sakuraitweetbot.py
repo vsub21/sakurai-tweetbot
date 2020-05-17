@@ -65,7 +65,7 @@ def create_video_from_urls(media_urls):
     video_fp = str(tmp / 'video.mp4')
 
     # Equivalent to cmd line: "{FFMPEG_PATH} -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
-    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=FFMPEG_PATH, quiet=True)
+    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=str(FFMPEG_PATH), quiet=True)
 
     logger.info('ffmpeg stdout: {}'.format(out))
     logger.info('ffmpeg stderr: {}'.format(err))
