@@ -36,19 +36,26 @@ def main(mytimer: func.TimerRequest) -> None:
     #     chmod_result = os.popen("chmod u+x {}".format(sakuraitweetbot.FFMPEG_PATH)).read()
     #     logger.info('chmod_result: '.format(chmod_result))
 
-    # Give ffmpeg 777 perms
+    # Copy ffmpeg to tmp and give 777 perms
+    TMP_FFMPEG_PATH = "/tmp/ffmpeg"
 
-    chmod_before_string = "ls -la {}".format(str(sakuraitweetbot.FFMPEG_PATH))
+    copy_file_string = "cp -v {} {}".format(str(sakuraitweetbot.FFMPEG_PATH), TMP_FFMPEG_PATH)
+    copy_file_res = os.popen(copy_file_string).read()
+
+    logger.info('Executed: "{}"'.format(copy_file_string))
+    logger.info('Output: "{}"'.format(copy_file_res))
+
+    chmod_before_string = "ls -la {}".format(TMP_FFMPEG_PATH)
     chmod_before_res = os.popen(chmod_before_string).read()
 
     logger.info('Executed: "{}"'.format(chmod_before_string))
     logger.info('Output: "{}"'.format(chmod_before_res))
 
-    chmod_string = "chmod 777 {}".format(str(sakuraitweetbot.FFMPEG_PATH))
+    chmod_string = "chmod 777 {}".format(TMP_FFMPEG_PATH)
     chmod = os.popen(chmod_before_string).read()
     logger.info('Executed: "{}"'.format(chmod_string))
 
-    chmod_after_string = "ls -la {}".format(str(sakuraitweetbot.FFMPEG_PATH))
+    chmod_after_string = "ls -la {}".format(TMP_FFMPEG_PATH)
     chmod_after_res = os.popen(chmod_after_string).read()
 
     logger.info('Executed: "{}"'.format(chmod_after_string))

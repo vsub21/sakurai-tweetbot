@@ -27,6 +27,7 @@ config.read(parent / 'cfg/config.ini')
 
 # FFMPEG path (PathLike)
 FFMPEG_PATH = parent / '../bin/ffmpeg-git-20200504-amd64-static/ffmpeg'
+TMP_FFMPEG_PATH = "/tmp/ffmpeg"
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,8 @@ def create_video_from_urls(media_urls):
     image_seq_fp = str(tmp / 'image-%03d.jpg') # TODO: need to check if ffmpeg.input accepts PathLike, see: https://github.com/kkroening/ffmpeg-python/issues/364
     video_fp = str(tmp / 'video.mp4')
 
-    # Equivalent to cmd line: "{FFMPEG_PATH} -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
-    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=str(FFMPEG_PATH), quiet=True)
+    # Equivalent to cmd line: "{TMP_FFMPEG_PATH} -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
+    out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=TMP_FFMPEG_PATH, quiet=True)
 
     logger.info('ffmpeg stdout: {}'.format(out))
     logger.info('ffmpeg stderr: {}'.format(err))
