@@ -45,7 +45,7 @@ def cleanup_media():
             logger.exception(ex)
             continue
 
-def post_image_to_reddit(media_url, title):
+def post_image_to_reddit(subreddit, media_url, title):
     # Download image
     image_fp = tmp / 'image.jpg'
     urllib.request.urlretrieve(media_url, image_fp) # accepts PathLike
@@ -82,7 +82,7 @@ def create_video_from_urls(media_urls):
 
     return video_fp, thumbnail_path
 
-def post_gallery_to_reddit(media_urls, title):
+def post_gallery_to_reddit(subreddit, media_urls, title):
     tmp = pathlib.Path('/tmp')
     last_idx = 0
     image_fps = []
@@ -94,6 +94,7 @@ def post_gallery_to_reddit(media_urls, title):
 
     images = [{'image_path': image_fp} for image_fp in image_fps]
     submission = subreddit.submit_gallery(title=title, images=images, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+    logger.info('Reddit gallery submission: {}'.format(submission.__dict__))
     return submission
 
 def post_video_to_reddit(subreddit, media_urls, title):
@@ -150,7 +151,8 @@ def create_imgur_post(media_url, title, tweet_url, idx, num_images):
                 logger.warning('Failed POST request after {} attempts. Terminating.'.format(MAX_ATTEMPTS))
             else:
                 logger.info('Failed POST request, attempt #{}, retrying... ({} max attempts)'.format(i + 1, MAX_ATTEMPTS)) # 1-index attempts
-                time.sleep(90) # sleep for 90 seconds; find better way to do this, not ideal.
+                if os.environ['SLEEP_MODE'] == 'True':
+                    time.sleep(90) # sleep for 90 seconds; find better way to do this, not ideal.
 
     image_id = json['data']['id']
     image_url = json['data']['link']
@@ -282,7 +284,7 @@ def main():
                 upload = create_imgur_post(media_url, base_title, tweet_url, idx, num_images)
                 image_uploads.append(upload)
             if num_images > 1:
-                submission = post_gallery_to_reddit(media_urls, base_title) # post gallery to reddit
+                submission = post_gallery_to_reddit(subreddit, media_urls, base_title) # post gallery to reddit
                 cleanup_media()
             else: # only one image in tweet
                 image_url = image_uploads[0][1]
