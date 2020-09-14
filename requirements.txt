@@ -1,4 +1,5 @@
 azure-functions
-praw==6.5.1
+git+git://github.com/praw-dev/praw@v7.1.0 #praw dev branch, contains submit_gallery method
 tweepy==3.8.0
 ffmpeg-python==0.2.0
+Pillow

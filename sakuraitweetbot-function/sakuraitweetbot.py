@@ -4,6 +4,7 @@ import urllib
 import pathlib
 import logging
 import glob
+from PIL import Image
 from datetime import datetime, timedelta
 import time
 from configparser import ConfigParser
@@ -54,16 +55,24 @@ def post_image_to_reddit(media_url, title):
 
 def create_video_from_urls(media_urls):
     # Download images
+    last_idx = 0
     for idx, media_url in enumerate(media_urls):
         image_fp = tmp / 'image-{}.jpg'.format(str(idx).zfill(3))
         if idx == 0:
             thumbnail_path = image_fp
         urllib.request.urlretrieve(media_url, image_fp) # accepts PathLike
         logger.info('Downloaded image {}.'.format(image_fp))
+        last_idx = idx
         
     # ffmpeg conversion
     image_seq_fp = str(tmp / 'image-%03d.jpg') # TODO: need to check if ffmpeg.input accepts PathLike, see: https://github.com/kkroening/ffmpeg-python/issues/364
     video_fp = str(tmp / 'video.mp4')
+
+    # Create black frame for end of video (hypothesizing Reddit cuts last still frame in video)
+    size = Image.open('image-001.jpg').size
+    black = Image.new('RGB', size)
+    black_fp = tmp / 'image-{}.jpg'.format(str(last_idx).zfill(3))
+    black.save(black_fp, "PNG")
 
     # Equivalent to cmd line: "{TMP_FFMPEG_PATH} -loop 1 -i {image_seq_fp} -t 10 {video_fp} -framerate 1/5"
     out, err = ffmpeg.input(image_seq_fp, loop=1, t=10, framerate=1/5).output(video_fp).run(cmd=TMP_FFMPEG_PATH, quiet=True)
@@ -72,6 +81,20 @@ def create_video_from_urls(media_urls):
     logger.info('ffmpeg stderr: {}'.format(err))
 
     return video_fp, thumbnail_path
+
+def post_gallery_to_reddit(media_urls, title):
+    tmp = pathlib.Path(secrets['Local']['repo_path'])
+    last_idx = 0
+    image_fps = []
+    for idx, media_url in enumerate(media_urls):
+        image_fp = tmp / 'media/image-{}.jpg'.format(idx)
+        urllib.request.urlretrieve(media_url, image_fp) # accepts PathLike
+        image_fps.append(image_fp)
+        logger.info('Downloaded image {}.'.format(image_fp))
+
+    images = [{'image_path': image_fp} for image_fp in image_fps]
+    submission = subreddit.submit_gallery(title=title, images=images, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
+    return submission
 
 def post_video_to_reddit(subreddit, media_urls, title):
     video_fp, thumbnail_path = create_video_from_urls(media_urls)
@@ -211,15 +234,15 @@ def main():
 
         # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
         media_files = []
-        yday = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
-        logger.info('Lower bound time constraint: {}'.format(yday))
+        lower = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
+        logger.info('Lower bound time constraint: {}'.format(lower))
 
         for tweet in tweets:
             media = tweet.entities.get('media', [])
             text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}"
             date = tweet.created_at
-            if (date > yday): # tweets are ordered by newest to oldest, break to avoid parsing unnecessary tweets
-                if (len(media) > 0 and not (' ' in text)):
+            if (date > lower): # tweets are ordered by newest to oldest, break to avoid parsing unnecessary tweets
+                if len(media) > 0:
                     tweet_url = media[0].get('expanded_url')
                     media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
                     media_files.append((tweet_url, media_urls, date))
@@ -259,7 +282,7 @@ def main():
                 upload = create_imgur_post(media_url, base_title, tweet_url, idx, num_images)
                 image_uploads.append(upload)
             if num_images > 1:
-                submission = post_video_to_reddit(subreddit, media_urls, base_title) # post video to reddit
+                submission = post_gallery_to_reddit(media_urls, base_title) # post gallery to reddit
                 cleanup_media()
             else: # only one image in tweet
                 image_url = image_uploads[0][1]
