@@ -83,11 +83,11 @@ def create_video_from_urls(media_urls):
     return video_fp, thumbnail_path
 
 def post_gallery_to_reddit(media_urls, title):
-    tmp = pathlib.Path(secrets['Local']['repo_path'])
+    tmp = pathlib.Path('/tmp')
     last_idx = 0
     image_fps = []
     for idx, media_url in enumerate(media_urls):
-        image_fp = tmp / 'media/image-{}.jpg'.format(idx)
+        image_fp = tmp / 'image-{}.jpg'.format(idx)
         urllib.request.urlretrieve(media_url, image_fp) # accepts PathLike
         image_fps.append(image_fp)
         logger.info('Downloaded image {}.'.format(image_fp))
