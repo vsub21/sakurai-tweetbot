@@ -93,6 +93,7 @@ def post_gallery_to_reddit(subreddit, media_urls, title):
         logger.info('Downloaded image {}.'.format(image_fp))
 
     images = [{'image_path': image_fp} for image_fp in image_fps]
+    title += ' ({} images!)'.format(len(media_urls))
     submission = subreddit.submit_gallery(title=title, images=images, flair_id=None if TEST_MODE else config['Reddit']['FLAIR_ID'])
     logger.info('Reddit gallery submission: {}'.format(submission.__dict__))
     return submission
