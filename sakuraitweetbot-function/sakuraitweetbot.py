@@ -1,5 +1,7 @@
 import os
 import requests
+import uuid
+import json
 import urllib
 import pathlib
 import logging
@@ -110,8 +112,38 @@ def post_link_to_reddit(subreddit, url, title):
     logger.info('Reddit link submission: {}'.format(submission.__dict__))
     return submission
 
-def create_reddit_comment(media_urls, tweet_url, submission):
+def translate_text(text_list):
+    # Check https://docs.microsoft.com/en-us/azure/cognitive-services/translator/quickstart-translator?tabs=python for reference
+    api_key = os.environ['TRANSLATOR_API_KEY']
+    endpoint = config['Azure']['TRANSLATE_ENDPOINT']
+
+    params = {
+        'api-version': '3.0',
+        'from': 'jp',
+        'to': 'en'
+    }
+
+    headers = {
+        'Ocp-Apim-Subscription-Key': api_key,
+        'Content-type': 'application/json',
+        'X-ClientTraceId': str(uuid.uuid4())
+    }
+
+    body = [{'text': text} for text in text_list]
+    logger.info('Request body: {}'.format(body))
+
+    request = requests.post(constructed_url, params=params, headers=headers, json=body)
+
+    response = request.json()
+    logger.info('Translations: {}'.format(response))
+
+    translations = [res['text'] for res in response[0]['translations']]
+
+    return translations
+
+def create_reddit_comment(tweet_url, media_urls, text_list, submission):
     comment = '[Original Tweet]({}) and '.format(tweet_url)
+    
     if len(media_urls) > 1:
         # TODO: figure out a better way to do this possibly with map/lambda and str join
         comment += 'Full-Size Images!: '
@@ -120,11 +152,28 @@ def create_reddit_comment(media_urls, tweet_url, submission):
         comment = comment[:-2] + '\n\n' # removes trailing ', '
     else:
         comment += '[Full-Size Image!]({})\n\n'.format(media_urls[0])
+
+    if text_list:
+        translations = translate_text(text_list)
+        if len(translations) > 1:
+            for idx, translation in enumerate(translations):
+                comment += 'Tweet {} Text:'.format(idx + 1) # 1-index
+                comment += '> {}'.format(text_list[idx])
+                comment += 'Translation:'
+                comment += '> {}'.format(translation)
+        elif len(translations == 1):
+            comment += 'Tweet Text:'
+            comment += '> {}'.format(text_list[0])
+            comment += 'Translation:'
+            comment += '> {}'.format(translations[0])
     
     comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\n'
     comment += 'Inspired by my dad: /u/SakuraiBot\n\n'
     comment += '[Album of all Smash Pics-of-the-Day!](https://imgur.com/a/{})'.format(os.environ['IMGUR_ALBUM_ID'])
     comment += '\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'
+
+    if text_list:
+        comment += 'Translated using [Microsoft Azure Translator](https://azure.microsoft.com/en-us/services/cognitive-services/translator/) APIs.'
     
     reply = submission.reply(comment)
     logger.info('Reddit reply: {}'.format(reply.__dict__))
@@ -248,7 +297,11 @@ def main():
                 if len(media) > 0:
                     tweet_url = media[0].get('expanded_url')
                     media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
-                    media_files.append((tweet_url, media_urls, date))
+                    if ' ' not in text:
+                        text_list = [] # provide empty list
+                    else:
+                        text_list = [text.rsplit(' ', 1)[0]] # remove url so tweet extracted is just
+                    media_files.append((tweet_url, media_urls, text_list, date))
             else: 
                 break
         logger.info('Filtered tweets set: {}'.format(media_files))
@@ -271,11 +324,12 @@ def main():
         if (len(media_files) > 1):
             media_files.reverse() # if more than one tweet, most likely a reply in which case API returns most recent first -- should reverse for picture ordering
             # Extract all other media_urls in other tweets and place in first media_files url list
-            for _, media_urls, _ in media_files[1:]:
+            for _, media_urls, text_list, _ in media_files[1:]:
                 media_files[0][1].extend(media_urls)
+                media_files[0][2].extend(text_list)
             media_files = [media_files[0]] # remove all other tweets -- can fix this whole process later...
 
-        for tweet_url, media_urls, date in media_files:
+        for tweet_url, media_urls, text_list, date in media_files:
             date_string = datetime.strftime(date, '%m/%d/%Y')
             base_title = 'New Smash Pic-of-the-Day! ({}) from @Sora_Sakurai'.format(date_string)
 
@@ -297,7 +351,7 @@ def main():
                 update_imgur_album(image_ids)
             
             # Create Reddit comment
-            reply = create_reddit_comment(media_urls, tweet_url, submission)
+            reply = create_reddit_comment(tweet_url, media_urls, text_list submission)
 
             # Sticky and mod distinguish
             submission.mod.distinguish(how='yes', sticky=False)
