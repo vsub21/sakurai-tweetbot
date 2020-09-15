@@ -175,7 +175,7 @@ def create_reddit_comment(tweet_url, media_urls, text_list, submission):
     comment += '\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*\n\n'
 
     if text_list:
-        comment += '*^Translated ^using ^[Microsoft Azure Translator](https://azure.microsoft.com/en-us/services/cognitive-services/translator/) ^APIs.*'
+        comment += '*^Translated ^using ^([Microsoft Azure Translator](https://azure.microsoft.com/en-us/services/cognitive-services/translator/).)*'
     
     reply = submission.reply(comment)
     logger.info('Reddit reply: {}'.format(reply.__dict__))
