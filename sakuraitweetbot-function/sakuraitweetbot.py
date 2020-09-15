@@ -114,17 +114,19 @@ def post_link_to_reddit(subreddit, url, title):
 
 def translate_text(text_list):
     # Check https://docs.microsoft.com/en-us/azure/cognitive-services/translator/quickstart-translator?tabs=python for reference
-    api_key = os.environ['TRANSLATOR_API_KEY']
+    api_key = os.environ['AZURE_TRANSLATOR_API_KEY']
+    region = os.environ['AZURE_REGION']
     endpoint = config['Azure']['TRANSLATE_ENDPOINT']
 
     params = {
         'api-version': '3.0',
-        'from': 'jp',
+        'from': 'ja',
         'to': 'en'
     }
 
     headers = {
         'Ocp-Apim-Subscription-Key': api_key,
+        'Ocp-Apim-Subscription-Region' : region,
         'Content-type': 'application/json',
         'X-ClientTraceId': str(uuid.uuid4())
     }
