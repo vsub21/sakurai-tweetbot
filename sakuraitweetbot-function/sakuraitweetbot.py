@@ -132,7 +132,7 @@ def translate_text(text_list):
     body = [{'text': text} for text in text_list]
     logger.info('Request body: {}'.format(body))
 
-    request = requests.post(constructed_url, params=params, headers=headers, json=body)
+    request = requests.post(endpoint, params=params, headers=headers, json=body)
 
     response = request.json()
     logger.info('Translations: {}'.format(response))
