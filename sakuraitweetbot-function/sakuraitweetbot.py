@@ -139,7 +139,7 @@ def translate_text(text_list):
     response = request.json()
     logger.info('Translations: {}'.format(response))
 
-    translations = [res['text'] for res in response[0]['translations']]
+    translations = [res['translations'][0]['text'] for res in response]
 
     return translations
 
@@ -163,7 +163,7 @@ def create_reddit_comment(tweet_url, media_urls, text_list, submission):
                 comment += '> {}'.format(text_list[idx])
                 comment += 'Translation:'
                 comment += '> {}'.format(translation)
-        elif len(translations == 1):
+        elif len(translations) == 1:
             comment += 'Tweet Text:'
             comment += '> {}'.format(text_list[0])
             comment += 'Translation:'
