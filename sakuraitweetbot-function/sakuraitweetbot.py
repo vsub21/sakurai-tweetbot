@@ -159,23 +159,23 @@ def create_reddit_comment(tweet_url, media_urls, text_list, submission):
         translations = translate_text(text_list)
         if len(translations) > 1:
             for idx, translation in enumerate(translations):
-                comment += 'Tweet {} Text:'.format(idx + 1) # 1-index
-                comment += '> {}'.format(text_list[idx])
-                comment += 'Translation:'
-                comment += '> {}'.format(translation)
+                comment += 'Tweet {} Text:\n\n'.format(idx + 1) # 1-index
+                comment += '> {}\n\n'.format(text_list[idx])
+                comment += 'Translation:\n\n'
+                comment += '> {}\n\n'.format(translation)
         elif len(translations) == 1:
-            comment += 'Tweet Text:'
-            comment += '> {}'.format(text_list[0])
-            comment += 'Translation:'
-            comment += '> {}'.format(translations[0])
+            comment += 'Tweet Text:\n\n'
+            comment += '> {}\n\n'.format(text_list[0])
+            comment += 'Translation:\n\n'
+            comment += '> {}\n\n'.format(translations[0])
     
     comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\n'
     comment += 'Inspired by my dad: /u/SakuraiBot\n\n'
     comment += '[Album of all Smash Pics-of-the-Day!](https://imgur.com/a/{})'.format(os.environ['IMGUR_ALBUM_ID'])
-    comment += '\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*'
+    comment += '\n\n---\n*^I ^am ^a ^bot, ^and ^this ^action ^was ^performed ^automatically. ^Message ^[me](https://www.reddit.com/message/compose?to=%2Fu%2FSakuraiTweetBot) ^if ^you ^have ^any ^questions ^or ^concerns. ^For ^information ^about ^me, ^visit ^this ^[thread](https://www.reddit.com/r/smashbros/comments/exewn8/introducing_sakuraitweetbot_posting_sakurai/) ^(here.)*\n\n'
 
     if text_list:
-        comment += 'Translated using [Microsoft Azure Translator](https://azure.microsoft.com/en-us/services/cognitive-services/translator/) APIs.'
+        comment += '*^Translated ^using ^[Microsoft Azure Translator](https://azure.microsoft.com/en-us/services/cognitive-services/translator/) ^APIs.*'
     
     reply = submission.reply(comment)
     logger.info('Reddit reply: {}'.format(reply.__dict__))
