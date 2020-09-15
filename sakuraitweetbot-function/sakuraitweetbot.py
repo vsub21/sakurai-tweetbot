@@ -351,7 +351,7 @@ def main():
                 update_imgur_album(image_ids)
             
             # Create Reddit comment
-            reply = create_reddit_comment(tweet_url, media_urls, text_list submission)
+            reply = create_reddit_comment(tweet_url, media_urls, text_list, submission)
 
             # Sticky and mod distinguish
             submission.mod.distinguish(how='yes', sticky=False)
