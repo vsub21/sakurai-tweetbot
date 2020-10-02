@@ -298,17 +298,17 @@ def main():
             date = tweet.created_at
             if (date > lower):
                 media = tweet.entities.get('media', [])
-                text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}"
+                text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
                     tweet_url = 'https://twitter.com/Sora_Sakurai/status/{}'.format(tweet.id)
                     media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
                     if ' ' not in text:
                         text_list = [] # provide empty list
                     else:
-                        text_list = [text.rsplit(' ', 1)[0]] # remove url so tweet extracted is just the text
+                        text_list = [text.rsplit(' ', 1)[0]] # remove url so tweet extracted is just the text; when tweet has media, text also contains shortened url appended
                     media_files.append((tweet_url, media_urls, text_list, date))
                     tweet_ids.add(tweet.id)
-                elif tweet.in_reply_to_status_id in tweet_ids and ' ' in text:
+                elif tweet.in_reply_to_status_id in tweet_ids:
                     tweet_url = 'https://twitter.com/Sora_Sakurai/status/{}'.format(tweet.id)
                     media_urls = []
                     text_list = [text.rsplit(' ', 1)[0]]
