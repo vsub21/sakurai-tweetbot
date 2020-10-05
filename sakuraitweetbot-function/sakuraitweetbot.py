@@ -288,15 +288,19 @@ def main():
 
         # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
         media_files = []
-        lower = (datetime.utcnow() - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0) # yesterday 5:00 UTC
+
+        # Posting time usually at 11:00 PM EDT (3:00 UTC)
+        lower = datetime.utcnow().replace(hour=2, minute=30, second=0, microsecond=0) # yesterday 22:30/10:30 PM EDT, today 2:30 UTC
+        upper = lower + timedelta(hours=1, minutes=45)
         logger.info('Lower bound time constraint: {}'.format(lower))
+        logger.info('Upper bound time constraint: {}'.format(upper))
 
         tweet_ids = set()
         # TODO: Integrate reply parsing properly; get rid of this below and the hacky way of extracting pictures from replies, use tweet.id and tweet.in_reply_to_status_id
         # tweets is ordered by newest to oldest; in order to get Sakurai's reply tweets that have no media, need to check if tweet.in_reply_to_status_id is in tweet_ids set
         for tweet in reversed(tweets):
             date = tweet.created_at
-            if (date > lower):
+            if (date > lower and date < upper):
                 media = tweet.entities.get('media', [])
                 text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
