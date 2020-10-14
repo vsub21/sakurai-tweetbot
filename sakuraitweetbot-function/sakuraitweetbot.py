@@ -160,14 +160,14 @@ def create_reddit_comment(tweet_url, media_urls, text_list, submission):
         if len(translations) > 1:
             for idx, translation in enumerate(translations):
                 comment += 'Tweet {} Text:\n\n'.format(idx + 1) # 1-index
-                comment += '> {}\n\n'.format(text_list[idx])
+                comment += '> {}\n\n'.format(text_list[idx].replace('\n\n', '\n\n> '))
                 comment += 'Translation:\n\n'
-                comment += '> {}\n\n'.format(translation)
+                comment += '> {}\n\n'.format(translation.replace('\n\n', '\n\n> '))
         elif len(translations) == 1:
             comment += 'Tweet Text:\n\n'
-            comment += '> {}\n\n'.format(text_list[0])
+            comment += '> {}\n\n'.format(text_list[0].replace('\n\n', '\n\n> '))
             comment += 'Translation:\n\n'
-            comment += '> {}\n\n'.format(translations[0])
+            comment += '> {}\n\n'.format(translations[0].replace('\n\n', '\n\n> '))
     
     comment += 'Twitter: [@Sora_Sakurai](https://twitter.com/sora_sakurai)\n\n'
     comment += 'Inspired by my dad: /u/SakuraiBot\n\n'
