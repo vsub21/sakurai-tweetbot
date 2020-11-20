@@ -10,10 +10,10 @@ on:
 #   AZURE_FUNCTIONAPP_PUBLISH_PROFILE
 #
 # 2. Change these variables for your configuration:
-env:
-  AZURE_FUNCTIONAPP_NAME: sakuraitweetbot # set this to your application's name
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'   # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.7'                 # set this to the python version to use (supports 3.6, 3.7, 3.8)
+# env:
+#   AZURE_FUNCTIONAPP_NAME: sakuraitweetbot # set this to your application's name
+#   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'   # set this to the path to your web app project, defaults to the repository root
+#   PYTHON_VERSION: '3.7'                 # set this to the python version to use (supports 3.6, 3.7, 3.8)
 
 jobs:
   build-and-deploy:
@@ -22,25 +22,25 @@ jobs:
     - name: 'Checkout GitHub Action'
       uses: actions/checkout@master
 
-    - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
+    - name: Setup Python 3.7 Environment
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        python-version: 3.7
 
     - name: 'Resolve Project Dependencies Using Pip'
       shell: bash
       run: |
-        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+        pushd './.'
         python -m pip install --upgrade pip
         pip install -r requirements.txt --target=".python_packages/lib/site-packages"
         popd
 
     - name: 'Run Azure Functions Action'
-      uses: Azure/functions-action@v1.1.4
+      uses: Azure/functions-action@v1.1.8
       id: fa
       with:
-        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-        package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        app-name: sakuraitweetbot
+        package: .
         publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
 
 # For more samples to get started with GitHub Action workflows to deploy to Azure, refer to https://github.com/Azure/actions-workflow-samples
