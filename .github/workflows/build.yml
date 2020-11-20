@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 'Define env variables'
-    - shell: bash
-    - run: |
+      shell: bash
+      run: |
         echo "AZURE_FUNCTIONAPP_NAME=sakuraitweetbot" >> $GITHUB_ENV
         echo "AZURE_FUNCTIONAPP_PACKAGE_PATH=." >> $GITHUB_ENV
         echo "PYTHON_VERSION=3.7" >> $GITHUB_ENV
