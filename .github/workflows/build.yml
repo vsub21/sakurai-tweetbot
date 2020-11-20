@@ -19,25 +19,25 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: 'Define environment variables'
-      shell: bash
-      run: |
+    - name: 'Define env variables'
+    - shell: bash
+    - run: |
         echo "AZURE_FUNCTIONAPP_NAME=sakuraitweetbot" >> $GITHUB_ENV
-        echo "AZURE_FUNCTIONAPP_PACKAGE_PATH}=." >> $GITHUB_ENV
+        echo "AZURE_FUNCTIONAPP_PACKAGE_PATH=." >> $GITHUB_ENV
         echo "PYTHON_VERSION=3.7" >> $GITHUB_ENV
-          
+
     - name: 'Checkout GitHub Action'
       uses: actions/checkout@master
 
-    - name: Setup Python ${{ GITHUB_ENV.PYTHON_VERSION }} Environment
+    - name: Setup Python $GITHUB_ENV.PYTHON_VERSION Environment
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ GITHUB_ENV.PYTHON_VERSION }}
+        python-version: $GITHUB_ENV.PYTHON_VERSION
 
     - name: 'Resolve Project Dependencies Using Pip'
       shell: bash
       run: |
-        pushd './${{ GITHUB_ENV.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+        pushd './$GITHUB_ENV.AZURE_FUNCTIONAPP_PACKAGE_PATH'
         python -m pip install --upgrade pip
         pip install -r requirements.txt --target=".python_packages/lib/site-packages"
         popd
@@ -46,8 +46,8 @@ jobs:
       uses: Azure/functions-action@v1.1.4
       id: fa
       with:
-        app-name: ${{ GITHUB_ENV.AZURE_FUNCTIONAPP_NAME }}
-        package: ${{ GITHUB_ENV.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        app-name: $GITHUB_ENV.AZURE_FUNCTIONAPP_NAME
+        package: $GITHUB_ENV.AZURE_FUNCTIONAPP_PACKAGE_PATH
         publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
 
 # For more samples to get started with GitHub Action workflows to deploy to Azure, refer to https://github.com/Azure/actions-workflow-samples
