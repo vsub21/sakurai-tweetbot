@@ -280,10 +280,10 @@ def main():
         logger.info('Twitter auth complete.')
         api = tweepy.API(twitter)
 
-        # Get last 200 tweets
+        # Get last TWEET_COUNT tweets
         SCREEN_NAME = 'Sora_Sakurai'
-        TWEET_COUNT = 200
-        tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, include_rts=False, exclude_replies=False)
+        TWEET_COUNT = 10
+        tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, tweet_mode='extended', include_rts=False, exclude_replies=False)
         logger.info('Fetched last {} tweets from @{}.'.format(TWEET_COUNT, SCREEN_NAME))
 
         # Filter last 200 tweets after 5:00 UTC of previous day that only contain media and store in set (tweet_url, media_url, date)
@@ -302,7 +302,7 @@ def main():
             date = tweet.created_at
             if (date > lower and date < upper):
                 media = tweet.entities.get('media', [])
-                text = tweet.text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
+                text = tweet.full_text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
                     tweet_url = 'https://twitter.com/Sora_Sakurai/status/{}'.format(tweet.id)
                     media_urls = ['{}?format=jpg&name=4096x4096'.format(med.get('media_url_https')) for med in tweet.extended_entities['media']] # for when more than one image to a tweet
