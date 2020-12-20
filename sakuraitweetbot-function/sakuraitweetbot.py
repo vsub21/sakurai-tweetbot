@@ -144,7 +144,7 @@ def translate_text(text_list):
     return translations
 
 def create_reddit_comment(tweet_url, media_urls, text_list, submission):
-    comment = '#\#FREEMELEE\n\n[Original Tweet]({}) and '.format(tweet_url)
+    comment = '#\#SAVESMASH \#FREEMELEE\n\n[Original Tweet]({}) and '.format(tweet_url)
     
     if len(media_urls) > 1:
         # TODO: figure out a better way to do this possibly with map/lambda and str join
