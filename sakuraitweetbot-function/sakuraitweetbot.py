@@ -266,7 +266,7 @@ def post_to_imgur_gallery(image_ids, title):
     json = request.json()
     logger.info('JSON for POST_TO_IMGUR_GALLERY POST POST request:\n{}'.format(json))
 
-def main():
+def main(custom_tweet_ids=None):
     logger.info('TEST_MODE={}'.format(TEST_MODE))
 
     # Cleanup media before start
@@ -300,7 +300,7 @@ def main():
         # tweets is ordered by newest to oldest; in order to get Sakurai's reply tweets that have no media, need to check if tweet.in_reply_to_status_id is in tweet_ids set
         for tweet in reversed(tweets):
             date = tweet.created_at
-            if (date > lower and date < upper):
+            if (date > lower and date < upper) or (custom_tweet_ids and tweet.id in custom_tweet_ids):
                 media = tweet.entities.get('media', [])
                 text = tweet.full_text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
@@ -385,4 +385,8 @@ def main():
         logger.exception(e)
 
 if __name__ == '__main__':
-    main()
+    # Pass custom tweet ids as env variable string (sep==';')
+    custom_tweet_ids = os.environ.get('CUSTOM_TWEET_IDS', None)
+    if custom_tweet_ids:
+        custom_tweet_ids = set(custom_tweet_ids.split(';'))
+    main(custom_tweet_ids)
