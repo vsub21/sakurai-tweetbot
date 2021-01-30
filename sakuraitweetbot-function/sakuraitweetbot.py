@@ -391,5 +391,5 @@ if __name__ == '__main__':
     # Pass custom tweet ids as env variable string (sep==';')
     custom_tweet_ids = os.environ.get('CUSTOM_TWEET_IDS', None)
     if custom_tweet_ids:
-        custom_tweet_ids = set(custom_tweet_ids.split(';'))
+        custom_tweet_ids = set(int(tweet_id) for tweet_id in custom_tweet_ids.split(';'))
     main(custom_tweet_ids)
