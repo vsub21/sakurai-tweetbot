@@ -268,7 +268,8 @@ def post_to_imgur_gallery(image_ids, title):
 
 def main(custom_tweet_ids=None):
     logger.info('TEST_MODE={}'.format(TEST_MODE))
-
+    logger.info('custom_tweet_ids:{}'.format(custom_tweet_ids))
+    
     # Cleanup media before start
     cleanup_media()
     logger.info('Cleaned up media.')
