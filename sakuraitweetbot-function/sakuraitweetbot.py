@@ -268,7 +268,7 @@ def post_to_imgur_gallery(image_ids, title):
 
 def main(custom_tweet_ids=None):
     logger.info('TEST_MODE={}'.format(TEST_MODE))
-    logger.info('custom_tweet_ids:{}'.format(custom_tweet_ids))
+    logger.info('custom_tweet_ids={}'.format(custom_tweet_ids))
 
     # Cleanup media before start
     cleanup_media()
@@ -302,6 +302,7 @@ def main(custom_tweet_ids=None):
         for tweet in reversed(tweets):
             date = tweet.created_at
             if (custom_tweet_ids is not None and tweet.id in custom_tweet_ids) or (custom_tweet_ids is None and (date > lower and date < upper)):
+                logger.info('Tweet ID: {}'.format(tweet.id))
                 media = tweet.entities.get('media', [])
                 text = tweet.full_text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
