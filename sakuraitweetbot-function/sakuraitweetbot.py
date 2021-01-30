@@ -320,7 +320,8 @@ def main(custom_tweet_ids=None):
                     media_files.append((tweet_url, media_urls, text_list, date))
                     tweet_ids.add(tweet.id)
         media_files.reverse()
-        logger.info('Filtered tweets set: {}'.format(media_files))
+        logger.info('Number of filtered tweets: {}'.format(len(media_files)))
+        logger.info('Filtered tweets: {}'.format(media_files))
 
         # Reddit auth
         reddit = praw.Reddit(client_id=os.environ['REDDIT_CLIENT_ID'],
