@@ -269,7 +269,7 @@ def post_to_imgur_gallery(image_ids, title):
 def main(custom_tweet_ids=None):
     logger.info('TEST_MODE={}'.format(TEST_MODE))
     logger.info('custom_tweet_ids:{}'.format(custom_tweet_ids))
-    
+
     # Cleanup media before start
     cleanup_media()
     logger.info('Cleaned up media.')
@@ -301,7 +301,7 @@ def main(custom_tweet_ids=None):
         # tweets is ordered by newest to oldest; in order to get Sakurai's reply tweets that have no media, need to check if tweet.in_reply_to_status_id is in tweet_ids set
         for tweet in reversed(tweets):
             date = tweet.created_at
-            if (not custom_tweet_ids and (date > lower and date < upper)) or (custom_tweet_ids and tweet.id in custom_tweet_ids):
+            if (custom_tweet_ids is None and (date > lower and date < upper)) or (custom_tweet_ids is not None and tweet.id in custom_tweet_ids):
                 media = tweet.entities.get('media', [])
                 text = tweet.full_text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
