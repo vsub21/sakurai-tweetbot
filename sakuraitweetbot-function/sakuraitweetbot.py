@@ -266,8 +266,9 @@ def post_to_imgur_gallery(image_ids, title):
     json = request.json()
     logger.info('JSON for POST_TO_IMGUR_GALLERY POST POST request:\n{}'.format(json))
 
-def main():
+def main(custom_tweet_ids=None):
     logger.info('TEST_MODE={}'.format(TEST_MODE))
+    logger.info('custom_tweet_ids={}'.format(custom_tweet_ids))
 
     # Cleanup media before start
     cleanup_media()
@@ -300,7 +301,8 @@ def main():
         # tweets is ordered by newest to oldest; in order to get Sakurai's reply tweets that have no media, need to check if tweet.in_reply_to_status_id is in tweet_ids set
         for tweet in reversed(tweets):
             date = tweet.created_at
-            if (date > lower and date < upper):
+            if (custom_tweet_ids is not None and tweet.id in custom_tweet_ids) or (custom_tweet_ids is None and (date > lower and date < upper)):
+                logger.info('Tweet ID: {}'.format(tweet.id))
                 media = tweet.entities.get('media', [])
                 text = tweet.full_text # format is "{tweet} {url}", note the space; if no {tweet} then result is just "{url}" --- for media tweets; for text tweets, no url is present
                 if len(media) > 0:
@@ -319,7 +321,8 @@ def main():
                     media_files.append((tweet_url, media_urls, text_list, date))
                     tweet_ids.add(tweet.id)
         media_files.reverse()
-        logger.info('Filtered tweets set: {}'.format(media_files))
+        logger.info('Number of filtered tweets: {}'.format(len(media_files)))
+        logger.info('Filtered tweets: {}'.format(media_files))
 
         # Reddit auth
         reddit = praw.Reddit(client_id=os.environ['REDDIT_CLIENT_ID'],
@@ -385,4 +388,10 @@ def main():
         logger.exception(e)
 
 if __name__ == '__main__':
-    main()
+    # Pass custom tweet ids as env variable string (sep==';')
+    custom_tweet_ids = os.environ.get('CUSTOM_TWEET_IDS')
+    if custom_tweet_ids:
+        custom_tweet_ids = set(int(tweet_id) for tweet_id in custom_tweet_ids.split(';'))
+        main(custom_tweet_ids)
+    else: # custom_tweet_ids == None or custom_tweet_ids == ''
+        main()

@@ -29,7 +29,14 @@ def main(mytimer: func.TimerRequest) -> None:
     logger.info('Python timer trigger function ran at {} (UTC)'.format(utc_timestamp))
 
     # Run sakuraitweetbot main
-    sakuraitweetbot.main()
+
+    custom_tweet_ids = os.environ.get('CUSTOM_TWEET_IDS') # Pass custom tweet ids as env variable string (sep==';')
+
+    if custom_tweet_ids:
+        custom_tweet_ids = set(int(tweet_id) for tweet_id in custom_tweet_ids.split(';'))
+        sakuraitweetbot.main(custom_tweet_ids)
+    else: # custom_tweet_ids == None or custom_tweet_ids == ''
+        sakuraitweetbot.main()
 
 if __name__ == '__main__':
     main()
