@@ -292,7 +292,7 @@ def main(custom_tweet_ids=None):
 
         # Posting time usually at 11:00 PM EDT (3:00 UTC)
         lower = datetime.utcnow().replace(hour=2, minute=30, second=0, microsecond=0) # yesterday 22:30/10:30 PM EDT, today 2:30 UTC
-        upper = lower + timedelta(hours=2, minutes=15)
+        upper = lower + timedelta(hours=2, minutes=45) # today 00:15/12:15 AM EDT, today 5:15 UTC
         logger.info('Lower bound time constraint: {}'.format(lower))
         logger.info('Upper bound time constraint: {}'.format(upper))
 
