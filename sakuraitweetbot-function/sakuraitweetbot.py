@@ -16,7 +16,7 @@ import tweepy
 import ffmpeg
 
 # Flight variables
-TEST_MODE = os.environ['TEST_MODE'] == 'True'upp
+TEST_MODE = os.environ['TEST_MODE'] == 'True'
 
 # Get path for parent directory (PathLike)
 parent = pathlib.Path(__file__).parent
