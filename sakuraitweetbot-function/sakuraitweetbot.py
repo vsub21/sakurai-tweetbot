@@ -283,7 +283,7 @@ def main(custom_tweet_ids=None):
 
         # Get last TWEET_COUNT tweets
         SCREEN_NAME = 'Sora_Sakurai'
-        TWEET_COUNT = 10
+        TWEET_COUNT = 50
         tweets = api.user_timeline(screen_name=SCREEN_NAME, count=TWEET_COUNT, tweet_mode='extended', include_rts=False, exclude_replies=False)
         logger.info('Fetched last {} tweets from @{}.'.format(TWEET_COUNT, SCREEN_NAME))
 
